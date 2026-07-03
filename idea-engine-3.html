@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Idea Engine</title>
+<link rel="icon" href="data:image/png;base64,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">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Idea Engine">
+<meta name="theme-color" content="#11141B">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg:#11141B;
+    --surface:#171B24;
+    --surface-2:#1F2430;
+    --line: rgba(236,233,225,0.09);
+    --line-strong: rgba(236,233,225,0.16);
+    --ink:#EDEAE2;
+    --muted:#8C90A0;
+    --muted-2:#5D6070;
+    --gold:#E8A33D;
+    --gold-dim: rgba(232,163,61,0.13);
+    --gold-line: rgba(232,163,61,0.35);
+    --danger:#D8674F;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+  }
+
+  body{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:64px 24px 120px;
+  }
+
+  .wrap{
+    width:100%;
+    max-width:640px;
+  }
+
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--gold);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:18px;
+  }
+
+  .eyebrow::before{
+    content:'';
+    width:6px;
+    height:6px;
+    background:var(--gold);
+    border-radius:50%;
+    flex-shrink:0;
+  }
+
+  h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:38px;
+    line-height:1.12;
+    letter-spacing:-0.01em;
+    margin:0 0 14px;
+  }
+
+  .sub{
+    font-size:15px;
+    line-height:1.6;
+    color:var(--muted);
+    max-width:44ch;
+    margin:0 0 40px;
+  }
+
+  .cta-row{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-bottom:10px;
+  }
+
+  button.generate{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:15px;
+    letter-spacing:0.01em;
+    color:#161710;
+    background:var(--gold);
+    border:none;
+    border-radius:3px;
+    padding:15px 26px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    transition:background .15s ease, transform .1s ease;
+  }
+
+  button.generate:hover{ background:#F0B054; }
+  button.generate:active{ transform:scale(0.98); }
+  button.generate:disabled{
+    background:var(--surface-2);
+    color:var(--muted);
+    cursor:default;
+  }
+
+  button.generate .arrow{
+    font-size:15px;
+    transition:transform .15s ease;
+  }
+  button.generate:not(:disabled):hover .arrow{ transform:translateX(2px); }
+
+  .spin{
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    border:2px solid rgba(140,144,160,0.35);
+    border-top-color: var(--muted);
+    animation:rot .7s linear infinite;
+  }
+
+  @keyframes rot{ to{ transform:rotate(360deg); } }
+
+  .err{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    color:var(--danger);
+    margin-top:4px;
+  }
+
+  .simple-toggle{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin:22px 0 4px;
+    cursor:pointer;
+    user-select:none;
+    width:fit-content;
+  }
+
+  .switch{ position:relative; flex-shrink:0; }
+  .switch input{
+    position:absolute;
+    opacity:0;
+    width:36px;
+    height:20px;
+    margin:0;
+    cursor:pointer;
+  }
+
+  .track{
+    display:block;
+    width:36px;
+    height:20px;
+    background:var(--surface-2);
+    border:1px solid var(--line-strong);
+    border-radius:999px;
+    transition:background .15s ease, border-color .15s ease;
+  }
+
+  .thumb{
+    display:block;
+    width:14px;
+    height:14px;
+    margin:2px;
+    background:var(--muted);
+    border-radius:50%;
+    transition:transform .15s ease, background .15s ease;
+  }
+
+  .switch input:checked + .track{
+    background:var(--gold-dim);
+    border-color:var(--gold-line);
+  }
+  .switch input:checked + .track .thumb{
+    background:var(--gold);
+    transform:translateX(16px);
+  }
+
+  .toggle-text{
+    display:flex;
+    flex-direction:column;
+    gap:1px;
+  }
+
+  .toggle-title{
+    font-size:13.5px;
+    font-weight:500;
+    color:var(--ink);
+  }
+
+  .toggle-sub{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    color:var(--muted-2);
+  }
+
+  .log-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    color:var(--muted-2);
+    margin:52px 0 18px;
+    padding-bottom:14px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+  }
+
+  .feed{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+  }
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:4px;
+    overflow:hidden;
+    animation:rise .35s ease both;
+  }
+
+  @keyframes rise{
+    from{ opacity:0; transform:translateY(8px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  .card-inner{
+    display:flex;
+  }
+
+  .spine{
+    width:4px;
+    flex-shrink:0;
+    background:var(--gold);
+  }
+
+  .spine.med{ background:#7C8299; }
+  .spine.high{ background:var(--muted-2); }
+
+  .card-body{
+    padding:20px 22px 22px;
+    flex:1;
+    min-width:0;
+  }
+
+  .meta-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.04em;
+    color:var(--muted-2);
+    margin-bottom:14px;
+  }
+
+  .idea-id{ color:var(--gold); }
+
+  .tag{
+    padding:3px 8px;
+    border-radius:2px;
+    background:var(--surface-2);
+    border:1px solid var(--line-strong);
+    color:var(--muted);
+    text-transform:uppercase;
+    font-size:10.5px;
+  }
+
+  .dashline{
+    border:none;
+    border-top:1px dashed var(--line-strong);
+    margin:16px 0;
+  }
+
+  h3{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:19px;
+    font-weight:600;
+    margin:0 0 8px;
+    letter-spacing:-0.005em;
+  }
+
+  .oneliner{
+    font-size:14.5px;
+    line-height:1.6;
+    color:#D2CFC7;
+    margin:0;
+  }
+
+  .why{
+    margin-top:16px;
+  }
+
+  .why-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    color:var(--muted-2);
+    text-transform:uppercase;
+    margin:0 0 6px;
+  }
+
+  .why-text{
+    font-size:13.5px;
+    line-height:1.65;
+    color:var(--muted);
+    margin:0;
+  }
+
+  .empty{
+    text-align:center;
+    padding:70px 20px;
+    color:var(--muted-2);
+    font-size:13.5px;
+    border:1px dashed var(--line-strong);
+    border-radius:4px;
+  }
+
+  @media (max-width:480px){
+    body{ padding:44px 18px 100px; }
+    h1{ font-size:30px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Private session log</div>
+  <h1>Business ideas,<br>on demand.</h1>
+  <p class="sub">One click gets you a new app or business idea — never repeated in this session — with the reasoning behind why it could work.</p>
+
+  <div class="cta-row">
+    <button class="generate" id="genBtn">
+      <span id="btnLabel">Generate idea</span>
+      <span class="arrow" id="btnArrow">⟩</span>
+    </button>
+  </div>
+
+  <label class="simple-toggle" id="simpleToggleWrap">
+    <span class="switch">
+      <input type="checkbox" id="simpleToggle">
+      <span class="track"><span class="thumb"></span></span>
+    </span>
+    <span class="toggle-text">
+      <span class="toggle-title">Simple English</span>
+      <span class="toggle-sub">Short sentences, everyday words, no jargon</span>
+    </span>
+  </label>
+
+  <div class="err" id="errBox" style="display:none;"></div>
+
+  <div class="log-label">
+    <span>Session feed</span>
+    <span id="countLabel">0 generated</span>
+  </div>
+
+  <div class="feed" id="feed">
+    <div class="empty" id="emptyState">No ideas yet. Hit generate to start the log.</div>
+  </div>
+
+</div>
+
+<script>
+  const genBtn = document.getElementById('genBtn');
+  const btnLabel = document.getElementById('btnLabel');
+  const btnArrow = document.getElementById('btnArrow');
+  const errBox = document.getElementById('errBox');
+  const feed = document.getElementById('feed');
+  const emptyState = document.getElementById('emptyState');
+  const countLabel = document.getElementById('countLabel');
+
+  let history = [];
+  let count = 0;
+
+  const effortClass = (effort) => {
+    const e = (effort || '').toLowerCase();
+    if(e.includes('low')) return '';
+    if(e.includes('high')) return 'high';
+    return 'med';
+  };
+
+  function setLoading(isLoading){
+    genBtn.disabled = isLoading;
+    if(isLoading){
+      btnLabel.textContent = 'Drafting';
+      btnArrow.outerHTML = '<span class="spin" id="btnArrow"></span>';
+    } else {
+      btnLabel.textContent = 'Generate idea';
+      const spin = document.getElementById('btnArrow');
+      if(spin) spin.outerHTML = '<span class="arrow" id="btnArrow">⟩</span>';
+    }
+  }
+
+  function renderCard(idea, id){
+    const div = document.createElement('div');
+    div.className = 'card';
+    const stamp = String(id).padStart(3,'0');
+    div.innerHTML = `
+      <div class="card-inner">
+        <div class="spine ${effortClass(idea.effort)}"></div>
+        <div class="card-body">
+          <div class="meta-row">
+            <span class="idea-id">IDEA-${stamp}</span>
+            <span class="tag">${idea.category || 'General'}</span>
+            <span class="tag">${idea.effort || 'Medium'} effort</span>
+          </div>
+          <h3>${idea.name}</h3>
+          <p class="oneliner">${idea.oneLiner}</p>
+          <hr class="dashline">
+          <div class="why">
+            <p class="why-label">Why this works</p>
+            <p class="why-text">${idea.rationale}</p>
+          </div>
+        </div>
+      </div>
+    `;
+    return div;
+  }
+
+  async function generateIdea(){
+    setLoading(true);
+    errBox.style.display = 'none';
+
+    const simple = document.getElementById('simpleToggle').checked;
+
+    const avoidList = history.length
+      ? `Do not repeat, rename-and-resubmit, or lightly remix any of these already-given ideas: ${history.join(' | ')}.`
+      : '';
+
+    const languageRule = simple
+      ? `LANGUAGE RULE — very important: the reader is not a fluent English speaker, so write "oneLiner" and "rationale" for someone learning English.
+- Use short sentences (10 words or fewer each).
+- Use common, everyday words. No business jargon (avoid words like "leverage", "scalable", "disrupt", "monetize", "vertical", "niche", "streamline", "synergy").
+- If a harder word is truly necessary, immediately explain it in plain words right after.
+- No idioms, no slang.
+- "category" and "effort" fields still use their normal short values.`
+      : `Write "oneLiner" and "rationale" in clear, professional business English.`;
+
+    const prompt = `You generate a single sharp business or app idea aimed at making money or solving a real, current need. Audience: an adult founder/operator, professional context.
+
+${avoidList}
+
+${languageRule}
+
+Respond with ONLY a raw JSON object, no markdown fences, no preamble, matching exactly this shape:
+{
+  "name": "short punchy idea name, 2-5 words",
+  "category": "one or two words, e.g. SaaS, Marketplace, Consumer, Fintech, Dev Tools, Local Services, AI Tools, Hardware, B2B",
+  "effort": "Low, Medium, or High",
+  "oneLiner": "one sentence, under 28 words, describing what it does and for whom",
+  "rationale": "2-3 sentences explaining why this idea specifically could work now: the need it solves, the market signal, or the timing. Concrete, not generic."
+}
+
+Make the idea specific and non-obvious, not a generic template like "an app for X". Vary the category and effort level from prior ideas when possible.`;
+
+    try{
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+
+      if(!response.ok){
+        throw new Error(`Request failed (${response.status})`);
+      }
+
+      const data = await response.json();
+      const raw = data.content.map(b => b.text || '').join('').trim();
+      const cleaned = raw.replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+      const idea = JSON.parse(cleaned);
+
+      count += 1;
+      history.push(idea.name);
+      if(history.length > 20) history.shift();
+
+      if(emptyState) emptyState.remove();
+      const card = renderCard(idea, count);
+      feed.insertBefore(card, feed.firstChild);
+      countLabel.textContent = `${count} generated`;
+
+    } catch(err){
+      errBox.textContent = 'Could not draft an idea — ' + err.message + '. Try again.';
+      errBox.style.display = 'block';
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  genBtn.addEventListener('click', generateIdea);
+</script>
+</body>
+</html>
