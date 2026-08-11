@@ -362,7 +362,7 @@
 
   <p class="eyebrow">Conservation of momentum</p>
   <h1>Even Split</h1>
-  <p class="sub">Two wagons sit coupled on a plank balanced across a fulcrum. Blow the charge between them and they go off like a gunshot — but every force in that bang is internal, so their shared centre of mass cannot move an inch. The heavy one is thrown slowly, the light one is thrown far, and the plank never notices. Drop it into slow motion if it goes past too fast to believe.</p>
+  <p class="sub">Two wagons sit coupled on a plank balanced across a fulcrum. Blow the charge between them and they go off like a gunshot — but every force in that bang is internal, so their shared centre of mass cannot move an inch. The heavy one is thrown slowly and stops short, the light one is thrown far, and the plank never notices. Let the brakes bring them to rest and read the two distances off the plank: half the mass, twice the distance.</p>
 
   <div class="layout">
 
@@ -406,8 +406,13 @@
         </div>
 
         <div class="ctrl">
-          <div class="ctrl-head"><span class="ctrl-name">Rolling friction</span><span class="ctrl-val" id="v_mu"></span></div>
-          <input type="range" id="mu" min="0" max="0.012" step="0.0005" value="0">
+          <div class="ctrl-head"><span class="ctrl-name">Brakes &middot; drag ∝ speed</span><span class="ctrl-val" id="v_brake"></span></div>
+          <input type="range" id="brake" min="0" max="4" step="0.05" value="1.5">
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><span class="ctrl-name">Ground friction ∝ weight</span><span class="ctrl-val" id="v_mu"></span></div>
+          <input type="range" id="mu" min="0" max="0.25" step="0.005" value="0">
         </div>
 
         <div class="ctrl">
@@ -441,7 +446,7 @@
         </div>
       </div>
 
-      <p class="foot">RK4 integration &middot; 480 Hz substeps<br>The charge is an impulse split equal and opposite, so the pair's momentum stays at zero however hard it goes off.<br>Rolling friction is the thing that breaks the trick — turn it up.</p>
+      <p class="foot">RK4 integration &middot; 480 Hz substeps<br>The charge is an impulse split equal and opposite, so the pair's momentum stays at zero however hard it goes off.<br>Brakes scale with mass, so they stop the pair without spoiling the balance. Ground friction does not — turn it up and watch the plank lean.</p>
     </div>
 
   </div>
@@ -471,7 +476,7 @@
   const TORSION = 300;          // N·m per radian
   const I_BEAM = BEAM_MASS * (2*BEAM_HALF) * (2*BEAM_HALF) / 12;
 
-  const params = { mA:3, mB:3, k:1.2, g:9.81, mu:0, slow:1 };
+  const params = { mA:3, mB:3, k:1.2, g:9.81, mu:0, brake:1.5, slow:1 };
   let soundOn = true;
 
   let mode = 'sandbox';
@@ -542,7 +547,14 @@
       // fading to nothing at a standstill. A hard sign() here would chatter
       // around zero velocity instead of letting a wagon coast to rest.
       if(params.mu > 0) f -= Math.tanh(v / 0.03) * params.mu * m * params.g * cosT;
-      return s * w * w - params.g * sinT + f / m;
+      // Eddy brakes: drag proportional to speed *and* to the wagon's own mass,
+      // so both wagons shed momentum at the same fractional rate. That is what
+      // lets them coast to a stop without disturbing the balance — each one
+      // travels v/brake, which is inversely proportional to its mass, exactly
+      // the ratio the moments need. Ground friction cannot do this: it slows
+      // everything at mu*g regardless of mass, so the heavy wagon stops too
+      // early, the moments stop matching and the plank leans.
+      return s * w * w - params.g * sinT + f / m - params.brake * v;
     };
 
     return [
@@ -1059,9 +1071,10 @@
   const sliders = {
     mA: { key:'mA', fmt:v => v.toFixed(1) + ' kg' },
     mB: { key:'mB', fmt:v => v.toFixed(1) + ' kg' },
-    k:  { key:'k',  fmt:v => (v * 18).toFixed(0) + ' J' },
+    k:  { key:'k',  fmt:v => (v * 8).toFixed(1) + ' J' },
     g:  { key:'g',  fmt:v => v.toFixed(2) + ' m/s²' },
     mu: { key:'mu', fmt:v => v.toFixed(3) },
+    brake: { key:'brake', fmt:v => v.toFixed(2) + ' /s' },
     slow: { key:'slow', fmt:v => v.toFixed(2) + '×' }
   };
 
@@ -1129,7 +1142,7 @@
     // why the plank does not care how hard this goes off.
     //   KE = J^2/2 * (1/mA + 1/mB) = J^2 / (2 * reduced mass)
     const reduced = (params.mA * params.mB) / (params.mA + params.mB);
-    const J = Math.sqrt(2 * params.k * 18 * reduced);
+    const J = Math.sqrt(2 * params.k * 8 * reduced);
     A.v = -J / params.mA;
     B.v =  J / params.mB;
 
