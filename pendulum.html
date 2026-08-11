@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pendulum</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2311141B'/%3E%3Cpath d='M16 5 L24 21' stroke='%238C90A0' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='5' r='1.8' fill='%238C90A0'/%3E%3Ccircle cx='24' cy='21' r='4.5' fill='%23E8A33D'/%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pendulum">
+<meta name="theme-color" content="#11141B">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg:#11141B;
+    --surface:#171B24;
+    --surface-2:#1F2430;
+    --line: rgba(236,233,225,0.09);
+    --line-strong: rgba(236,233,225,0.16);
+    --ink:#EDEAE2;
+    --muted:#8C90A0;
+    --muted-2:#5D6070;
+    --gold:#E8A33D;
+    --gold-dim: rgba(232,163,61,0.13);
+    --gold-line: rgba(232,163,61,0.35);
+    --danger:#D8674F;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter', system-ui, sans-serif;
+    -webkit-text-size-adjust:100%;
+  }
+
+  body{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:48px 24px 80px;
+  }
+
+  .wrap{
+    width:100%;
+    max-width:1000px;
+  }
+
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--gold);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:16px;
+  }
+
+  .eyebrow::before{
+    content:'';
+    width:6px;
+    height:6px;
+    background:var(--gold);
+    border-radius:50%;
+    flex-shrink:0;
+  }
+
+  h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:34px;
+    line-height:1.12;
+    letter-spacing:-0.01em;
+    margin:0 0 12px;
+  }
+
+  .sub{
+    font-size:15px;
+    line-height:1.6;
+    color:var(--muted);
+    max-width:52ch;
+    margin:0 0 32px;
+  }
+
+  .layout{
+    display:grid;
+    grid-template-columns: minmax(0,1fr) 268px;
+    gap:20px;
+    align-items:start;
+  }
+
+  .stage{
+    position:relative;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:4px;
+    overflow:hidden;
+  }
+
+  canvas{
+    display:block;
+    width:100%;
+    height:520px;
+    touch-action:none;
+    cursor:grab;
+  }
+
+  canvas.dragging{ cursor:grabbing; }
+
+  .hud{
+    position:absolute;
+    top:12px;
+    left:14px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    line-height:1.7;
+    color:var(--muted-2);
+    pointer-events:none;
+    letter-spacing:0.02em;
+  }
+
+  .hud b{
+    color:var(--muted);
+    font-weight:500;
+  }
+
+  .hint{
+    position:absolute;
+    bottom:12px;
+    left:14px;
+    right:14px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--muted-2);
+    pointer-events:none;
+  }
+
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:18px 18px 22px;
+  }
+
+  .panel + .panel{ margin-top:16px; }
+
+  .panel-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--muted-2);
+    margin:0 0 14px;
+  }
+
+  .seg{
+    display:flex;
+    border:1px solid var(--line-strong);
+    border-radius:3px;
+    overflow:hidden;
+    margin-bottom:20px;
+  }
+
+  .seg button{
+    flex:1;
+    font-family:'Space Grotesk', sans-serif;
+    font-size:13px;
+    font-weight:600;
+    color:var(--muted);
+    background:transparent;
+    border:none;
+    padding:10px 6px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+
+  .seg button + button{ border-left:1px solid var(--line-strong); }
+  .seg button:hover{ color:var(--ink); }
+  .seg button[aria-pressed="true"]{
+    background:var(--gold-dim);
+    color:var(--gold);
+  }
+
+  .ctrl{ margin-bottom:16px; }
+
+  .ctrl-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:7px;
+  }
+
+  .ctrl-name{
+    font-size:13px;
+    color:var(--muted);
+  }
+
+  .ctrl-val{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11.5px;
+    color:var(--ink);
+  }
+
+  input[type=range]{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:2px;
+    background:var(--line-strong);
+    border-radius:2px;
+    outline:none;
+    margin:0;
+  }
+
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    appearance:none;
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    background:var(--gold);
+    cursor:pointer;
+    border:none;
+  }
+
+  input[type=range]::-moz-range-thumb{
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    background:var(--gold);
+    cursor:pointer;
+    border:none;
+  }
+
+  input[type=range]:disabled::-webkit-slider-thumb{ background:var(--muted-2); cursor:default; }
+  input[type=range]:disabled::-moz-range-thumb{ background:var(--muted-2); cursor:default; }
+  .ctrl.disabled .ctrl-name,
+  .ctrl.disabled .ctrl-val{ color:var(--muted-2); }
+
+  .btn-row{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+  }
+
+  button.act{
+    flex:1;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:14px;
+    border-radius:3px;
+    padding:12px 10px;
+    cursor:pointer;
+    transition:background .15s ease, transform .1s ease, color .15s ease;
+  }
+
+  button.act:active{ transform:scale(0.98); }
+
+  button.primary{
+    color:#161710;
+    background:var(--gold);
+    border:none;
+  }
+  button.primary:hover{ background:#F0B054; }
+
+  button.ghost{
+    color:var(--muted);
+    background:transparent;
+    border:1px solid var(--line-strong);
+  }
+  button.ghost:hover{ color:var(--ink); border-color:var(--muted-2); }
+
+  .check{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    font-size:13px;
+    color:var(--muted);
+    cursor:pointer;
+    margin-top:14px;
+    user-select:none;
+  }
+
+  .check input{
+    appearance:none;
+    -webkit-appearance:none;
+    width:15px;
+    height:15px;
+    border:1px solid var(--line-strong);
+    border-radius:2px;
+    background:transparent;
+    cursor:pointer;
+    position:relative;
+    flex-shrink:0;
+    margin:0;
+  }
+
+  .check input:checked{
+    background:var(--gold);
+    border-color:var(--gold);
+  }
+
+  .check input:checked::after{
+    content:'';
+    position:absolute;
+    left:4.5px;
+    top:1px;
+    width:4px;
+    height:8px;
+    border:solid #161710;
+    border-width:0 2px 2px 0;
+    transform:rotate(45deg);
+  }
+
+  .readout{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11.5px;
+    line-height:1.9;
+    color:var(--muted);
+  }
+
+  .readout .row{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+  }
+
+  .readout .row span:last-child{ color:var(--ink); }
+
+  .foot{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    color:var(--muted-2);
+    margin-top:22px;
+    line-height:1.8;
+  }
+
+  @media (max-width: 860px){
+    body{ padding:36px 16px 64px; }
+    .layout{ grid-template-columns:1fr; }
+    canvas{ height:420px; }
+    h1{ font-size:28px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Rigid body sandbox</p>
+  <h1>Pendulum</h1>
+  <p class="sub">A physically integrated pendulum — single or chaotic double. Drag a bob to reposition it, flick it to throw it, and watch how a hair's difference in the start angle rewrites the whole path.</p>
+
+  <div class="layout">
+
+    <div class="stage">
+      <canvas id="c"></canvas>
+      <div class="hud" id="hud"></div>
+      <div class="hint" id="hint">Drag a bob to aim &middot; Space to pause &middot; R to reset</div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <p class="panel-label">Mode</p>
+        <div class="seg" id="modeSeg">
+          <button data-mode="single" aria-pressed="false">Single</button>
+          <button data-mode="double" aria-pressed="true">Double</button>
+        </div>
+
+        <p class="panel-label">Parameters</p>
+
+        <div class="ctrl" data-ctrl="l1">
+          <div class="ctrl-head"><span class="ctrl-name">Arm 1 length</span><span class="ctrl-val" id="v_l1"></span></div>
+          <input type="range" id="l1" min="0.4" max="2" step="0.01" value="1.2">
+        </div>
+
+        <div class="ctrl" data-ctrl="l2">
+          <div class="ctrl-head"><span class="ctrl-name">Arm 2 length</span><span class="ctrl-val" id="v_l2"></span></div>
+          <input type="range" id="l2" min="0.4" max="2" step="0.01" value="1.0">
+        </div>
+
+        <div class="ctrl" data-ctrl="m1">
+          <div class="ctrl-head"><span class="ctrl-name">Mass 1</span><span class="ctrl-val" id="v_m1"></span></div>
+          <input type="range" id="m1" min="0.2" max="5" step="0.05" value="1.4">
+        </div>
+
+        <div class="ctrl" data-ctrl="m2">
+          <div class="ctrl-head"><span class="ctrl-name">Mass 2</span><span class="ctrl-val" id="v_m2"></span></div>
+          <input type="range" id="m2" min="0.2" max="5" step="0.05" value="1.0">
+        </div>
+
+        <div class="ctrl" data-ctrl="g">
+          <div class="ctrl-head"><span class="ctrl-name">Gravity</span><span class="ctrl-val" id="v_g"></span></div>
+          <input type="range" id="g" min="0" max="25" step="0.1" value="9.81">
+        </div>
+
+        <div class="ctrl" data-ctrl="damp">
+          <div class="ctrl-head"><span class="ctrl-name">Damping</span><span class="ctrl-val" id="v_damp"></span></div>
+          <input type="range" id="damp" min="0" max="0.6" step="0.005" value="0">
+        </div>
+
+        <div class="ctrl" data-ctrl="speed">
+          <div class="ctrl-head"><span class="ctrl-name">Time scale</span><span class="ctrl-val" id="v_speed"></span></div>
+          <input type="range" id="speed" min="0.1" max="2" step="0.05" value="1">
+        </div>
+
+        <label class="check"><input type="checkbox" id="trailOn" checked> Motion trail</label>
+        <label class="check"><input type="checkbox" id="ghostOn"> Ghost twin (+0.001 rad)</label>
+
+        <div class="btn-row">
+          <button class="act primary" id="playBtn">Pause</button>
+          <button class="act ghost" id="resetBtn">Reset</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <p class="panel-label">Telemetry</p>
+        <div class="readout">
+          <div class="row"><span>angle 1</span><span id="r_a1">—</span></div>
+          <div class="row"><span>angle 2</span><span id="r_a2">—</span></div>
+          <div class="row"><span>kinetic</span><span id="r_ke">—</span></div>
+          <div class="row"><span>potential</span><span id="r_pe">—</span></div>
+          <div class="row"><span>total</span><span id="r_te">—</span></div>
+        </div>
+      </div>
+
+      <p class="foot">RK4 integration &middot; 960 Hz substeps<br>Energy drift is the integrator's, not physics'.</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+
+  // ---- simulation state -------------------------------------------------
+  const params = { L1:1.2, L2:1.0, m1:1.4, m2:1.0, g:9.81, damp:0, speed:1 };
+
+  const DEFAULT = { th1: Math.PI * 0.75, th2: Math.PI * 0.5 };
+
+  let mode = 'double';
+  let running = true;
+  let showTrail = true;
+  let showGhost = false;
+
+  // state vector: [th1, w1, th2, w2] — angles measured from straight down.
+  let s = [DEFAULT.th1, 0, DEFAULT.th2, 0];
+  let ghost = null;
+
+  let trail = [];
+  let ghostTrail = [];
+  const TRAIL_MAX = 900;
+
+  // ---- physics ----------------------------------------------------------
+  // Returns d/dt of the state vector. Single mode locks the second arm out
+  // by leaving its derivatives at zero.
+  function deriv(st){
+    const [th1, w1, th2, w2] = st;
+    const { L1, L2, m1, m2, g, damp } = params;
+
+    if(mode === 'single'){
+      const a1 = -(g / L1) * Math.sin(th1) - damp * w1;
+      return [w1, a1, 0, 0];
+    }
+
+    const d = th1 - th2;
+    const sd = Math.sin(d), cd = Math.cos(d);
+    const den = 2*m1 + m2 - m2 * Math.cos(2*d);
+
+    const a1 = (
+      -g * (2*m1 + m2) * Math.sin(th1)
+      - m2 * g * Math.sin(th1 - 2*th2)
+      - 2 * sd * m2 * (w2*w2*L2 + w1*w1*L1*cd)
+    ) / (L1 * den) - damp * w1;
+
+    const a2 = (
+      2 * sd * (
+        w1*w1*L1*(m1 + m2)
+        + g * (m1 + m2) * Math.cos(th1)
+        + w2*w2*L2*m2*cd
+      )
+    ) / (L2 * den) - damp * w2;
+
+    return [w1, a1, w2, a2];
+  }
+
+  function rk4(st, h){
+    const k1 = deriv(st);
+    const k2 = deriv(st.map((v,i) => v + 0.5*h*k1[i]));
+    const k3 = deriv(st.map((v,i) => v + 0.5*h*k2[i]));
+    const k4 = deriv(st.map((v,i) => v + h*k3[i]));
+    return st.map((v,i) => v + (h/6) * (k1[i] + 2*k2[i] + 2*k3[i] + k4[i]));
+  }
+
+  function bobs(st){
+    const { L1, L2 } = params;
+    const x1 = L1 * Math.sin(st[0]);
+    const y1 = -L1 * Math.cos(st[0]);
+    if(mode === 'single') return { x1, y1, x2:x1, y2:y1 };
+    return { x1, y1, x2: x1 + L2*Math.sin(st[2]), y2: y1 - L2*Math.cos(st[2]) };
+  }
+
+  function energy(st){
+    const { L1, L2, m1, m2, g } = params;
+    const [th1, w1, th2, w2] = st;
+    const p = bobs(st);
+
+    if(mode === 'single'){
+      const ke = 0.5 * m1 * (L1*w1) * (L1*w1);
+      const pe = m1 * g * (p.y1 + L1);
+      return { ke, pe, te: ke + pe };
+    }
+
+    const v1sq = (L1*w1) * (L1*w1);
+    const v2sq = v1sq + (L2*w2)*(L2*w2) + 2*L1*L2*w1*w2*Math.cos(th1 - th2);
+    const ke = 0.5*m1*v1sq + 0.5*m2*v2sq;
+    const pe = m1*g*(p.y1 + L1) + m2*g*(p.y2 + L1 + L2);
+    return { ke, pe, te: ke + pe };
+  }
+
+  // ---- view -------------------------------------------------------------
+  let W = 0, H = 0, dpr = 1;
+  let pivotX = 0, pivotY = 0, scale = 100;
+
+  function resize(){
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = canvas.getBoundingClientRect();
+    W = rect.width; H = rect.height;
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    layout();
+  }
+
+  function layout(){
+    // A double pendulum loops over its own pivot, so fit the whole reachable
+    // disc rather than just the space below the mount.
+    const reach = mode === 'single' ? params.L1 : params.L1 + params.L2;
+    const pad = 26;
+    scale = Math.min((H - 2*pad) / (2*reach), (W - 2*pad) / (2*reach));
+    pivotX = W / 2;
+    pivotY = pad + reach * scale;
+  }
+
+  const toScreen = (x, y) => [pivotX + x*scale, pivotY - y*scale];
+
+  function bobRadius(m){ return 5 + 7 * Math.cbrt(m); }
+
+  function drawTrail(pts, rgb, alphaMax){
+    if(pts.length < 2) return;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for(let i = 1; i < pts.length; i++){
+      const t = i / pts.length;          // 0 = oldest, 1 = newest
+      ctx.beginPath();
+      ctx.moveTo(pts[i-1][0], pts[i-1][1]);
+      ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.strokeStyle = `rgba(${rgb},${(alphaMax * t * t).toFixed(3)})`;
+      ctx.lineWidth = 0.6 + 1.9 * t;
+      ctx.stroke();
+    }
+  }
+
+  function drawArm(st, opts){
+    const p = bobs(st);
+    const [sx1, sy1] = toScreen(p.x1, p.y1);
+    const [sx2, sy2] = toScreen(p.x2, p.y2);
+
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = opts.rod;
+    ctx.lineWidth = opts.rodWidth;
+
+    ctx.beginPath();
+    ctx.moveTo(pivotX, pivotY);
+    ctx.lineTo(sx1, sy1);
+    if(mode === 'double') ctx.lineTo(sx2, sy2);
+    ctx.stroke();
+
+    ctx.fillStyle = opts.bob1;
+    ctx.beginPath();
+    ctx.arc(sx1, sy1, bobRadius(params.m1), 0, Math.PI*2);
+    ctx.fill();
+
+    if(mode === 'double'){
+      ctx.fillStyle = opts.bob2;
+      ctx.beginPath();
+      ctx.arc(sx2, sy2, bobRadius(params.m2), 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  function render(){
+    ctx.clearRect(0, 0, W, H);
+
+    // pivot mount
+    ctx.strokeStyle = 'rgba(236,233,225,0.10)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pivotX - 26, pivotY);
+    ctx.lineTo(pivotX + 26, pivotY);
+    ctx.stroke();
+
+    if(showTrail){
+      if(showGhost && ghost) drawTrail(ghostTrail, '216,103,79', 0.5);
+      drawTrail(trail, '232,163,61', 0.72);
+    }
+
+    if(showGhost && ghost){
+      drawArm(ghost, {
+        rod:'rgba(216,103,79,0.35)', rodWidth:1.5,
+        bob1:'rgba(216,103,79,0.45)', bob2:'rgba(216,103,79,0.6)'
+      });
+    }
+
+    drawArm(s, {
+      rod:'rgba(236,233,225,0.42)', rodWidth:2,
+      bob1:'#8C90A0', bob2:'#E8A33D'
+    });
+
+    // pivot pin sits on top of the rods
+    ctx.fillStyle = '#5D6070';
+    ctx.beginPath();
+    ctx.arc(pivotX, pivotY, 3.5, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // ---- loop -------------------------------------------------------------
+  const DT = 1 / 960;
+  let acc = 0;
+  let last = performance.now();
+  let simTime = 0;
+
+  function pushTrail(){
+    const p = bobs(s);
+    trail.push(toScreen(mode === 'single' ? p.x1 : p.x2, mode === 'single' ? p.y1 : p.y2));
+    if(trail.length > TRAIL_MAX) trail.shift();
+
+    if(showGhost && ghost){
+      const q = bobs(ghost);
+      ghostTrail.push(toScreen(mode === 'single' ? q.x1 : q.x2, mode === 'single' ? q.y1 : q.y2));
+      if(ghostTrail.length > TRAIL_MAX) ghostTrail.shift();
+    }
+  }
+
+  function frame(now){
+    const raw = (now - last) / 1000;
+    last = now;
+
+    if(running && !drag){
+      acc += Math.min(raw, 0.05) * params.speed;
+      let steps = 0;
+      while(acc >= DT && steps < 4000){
+        s = rk4(s, DT);
+        if(showGhost && ghost) ghost = rk4(ghost, DT);
+        acc -= DT;
+        simTime += DT;
+        steps++;
+      }
+      acc = Math.min(acc, DT);
+      pushTrail();
+    }
+
+    render();
+    updateReadout();
+    requestAnimationFrame(frame);
+  }
+
+  // ---- readouts ---------------------------------------------------------
+  const hud = document.getElementById('hud');
+  const r_a1 = document.getElementById('r_a1');
+  const r_a2 = document.getElementById('r_a2');
+  const r_ke = document.getElementById('r_ke');
+  const r_pe = document.getElementById('r_pe');
+  const r_te = document.getElementById('r_te');
+
+  const deg = th => {
+    let d = th * 180 / Math.PI % 360;
+    if(d > 180) d -= 360;
+    if(d < -180) d += 360;
+    return d;
+  };
+  const fmt = (n, p=2) => n.toFixed(p).padStart(7, ' ');
+
+  let readoutTick = 0;
+  function updateReadout(){
+    if(readoutTick++ % 3) return;    // ~20 Hz is plenty for text
+    const e = energy(s);
+    hud.innerHTML = `<b>t</b> ${simTime.toFixed(1)}s &nbsp; <b>E</b> ${e.te.toFixed(2)} J`
+      + (showGhost && ghost ? `<br><b>divergence</b> ${separation().toFixed(3)} m` : '');
+    r_a1.textContent = `${fmt(deg(s[0]), 1)}°`;
+    r_a2.textContent = mode === 'single' ? '—' : `${fmt(deg(s[2]), 1)}°`;
+    r_ke.textContent = `${fmt(e.ke)} J`;
+    r_pe.textContent = `${fmt(e.pe)} J`;
+    r_te.textContent = `${fmt(e.te)} J`;
+  }
+
+  function separation(){
+    const a = bobs(s), b = bobs(ghost);
+    return Math.hypot(a.x2 - b.x2, a.y2 - b.y2);
+  }
+
+  // ---- interaction ------------------------------------------------------
+  let drag = null;          // { which, lastAngle, lastTime, omega }
+
+  function pointerPos(ev){
+    const rect = canvas.getBoundingClientRect();
+    return [
+      (ev.clientX - rect.left - pivotX) / scale,
+      -(ev.clientY - rect.top - pivotY) / scale
+    ];
+  }
+
+  canvas.addEventListener('pointerdown', ev => {
+    const [x, y] = pointerPos(ev);
+    const p = bobs(s);
+    const grabR = 28 / scale;
+
+    const d1 = Math.hypot(x - p.x1, y - p.y1);
+    const d2 = Math.hypot(x - p.x2, y - p.y2);
+
+    let which = null;
+    if(mode === 'double' && d2 <= d1 && d2 < grabR) which = 2;
+    else if(d1 < grabR) which = 1;
+    else if(mode === 'double' && d2 < grabR) which = 2;
+    if(which === null) return;
+
+    canvas.setPointerCapture(ev.pointerId);
+    canvas.classList.add('dragging');
+    drag = { which, lastAngle: which === 1 ? s[0] : s[2], lastTime: performance.now(), omega: 0 };
+    ev.preventDefault();
+  });
+
+  canvas.addEventListener('pointermove', ev => {
+    if(!drag) return;
+    const [x, y] = pointerPos(ev);
+    const p = bobs(s);
+
+    let a;
+    if(drag.which === 1){
+      a = Math.atan2(x, -y);
+      s[0] = a;
+      s[1] = 0;
+    } else {
+      a = Math.atan2(x - p.x1, -(y - p.y1));
+      s[2] = a;
+      s[3] = 0;
+    }
+
+    // Track angular velocity so a flick throws the bob.
+    const now = performance.now();
+    const dt = (now - drag.lastTime) / 1000;
+    if(dt > 0.004){
+      let da = a - drag.lastAngle;
+      while(da > Math.PI) da -= Math.PI*2;
+      while(da < -Math.PI) da += Math.PI*2;
+      drag.omega = Math.max(-25, Math.min(25, da / dt));
+      drag.lastAngle = a;
+      drag.lastTime = now;
+    }
+
+    trail.length = 0;
+    ghostTrail.length = 0;
+    syncGhost();
+  });
+
+  function endDrag(ev){
+    if(!drag) return;
+    if(drag.which === 1) s[1] = drag.omega; else s[3] = drag.omega;
+    drag = null;
+    canvas.classList.remove('dragging');
+    if(canvas.hasPointerCapture && ev && canvas.hasPointerCapture(ev.pointerId)){
+      canvas.releasePointerCapture(ev.pointerId);
+    }
+    syncGhost();
+    last = performance.now();
+  }
+
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+
+  // ---- controls ---------------------------------------------------------
+  const sliders = {
+    l1:   { key:'L1',    el:document.getElementById('l1'),    out:document.getElementById('v_l1'),    fmt:v => v.toFixed(2) + ' m' },
+    l2:   { key:'L2',    el:document.getElementById('l2'),    out:document.getElementById('v_l2'),    fmt:v => v.toFixed(2) + ' m' },
+    m1:   { key:'m1',    el:document.getElementById('m1'),    out:document.getElementById('v_m1'),    fmt:v => v.toFixed(2) + ' kg' },
+    m2:   { key:'m2',    el:document.getElementById('m2'),    out:document.getElementById('v_m2'),    fmt:v => v.toFixed(2) + ' kg' },
+    g:    { key:'g',     el:document.getElementById('g'),     out:document.getElementById('v_g'),     fmt:v => v.toFixed(2) + ' m/s²' },
+    damp: { key:'damp',  el:document.getElementById('damp'),  out:document.getElementById('v_damp'),  fmt:v => v.toFixed(3) },
+    speed:{ key:'speed', el:document.getElementById('speed'), out:document.getElementById('v_speed'), fmt:v => v.toFixed(2) + '×' }
+  };
+
+  Object.entries(sliders).forEach(([name, sl]) => {
+    const apply = () => {
+      params[sl.key] = parseFloat(sl.el.value);
+      sl.out.textContent = sl.fmt(params[sl.key]);
+      if(name === 'l1' || name === 'l2'){
+        layout();
+        trail.length = 0;
+        ghostTrail.length = 0;
+      }
+    };
+    sl.el.addEventListener('input', apply);
+    apply();
+  });
+
+  function setMode(next){
+    mode = next;
+    document.querySelectorAll('#modeSeg button').forEach(b => {
+      b.setAttribute('aria-pressed', String(b.dataset.mode === next));
+    });
+    ['l2','m2'].forEach(n => {
+      const off = next === 'single';
+      sliders[n].el.disabled = off;
+      sliders[n].el.closest('.ctrl').classList.toggle('disabled', off);
+    });
+    layout();
+    reset();
+  }
+
+  document.getElementById('modeSeg').addEventListener('click', ev => {
+    const b = ev.target.closest('button');
+    if(b) setMode(b.dataset.mode);
+  });
+
+  function syncGhost(){
+    if(!showGhost){ ghost = null; return; }
+    ghost = [s[0] + 0.001, s[1], s[2], s[3]];
+    ghostTrail.length = 0;
+  }
+
+  function reset(){
+    s = [DEFAULT.th1, 0, mode === 'single' ? DEFAULT.th1 : DEFAULT.th2, 0];
+    trail.length = 0;
+    ghostTrail.length = 0;
+    simTime = 0;
+    acc = 0;
+    last = performance.now();
+    syncGhost();
+  }
+
+  const playBtn = document.getElementById('playBtn');
+  function setRunning(next){
+    running = next;
+    playBtn.textContent = running ? 'Pause' : 'Play';
+    last = performance.now();
+  }
+
+  playBtn.addEventListener('click', () => setRunning(!running));
+  document.getElementById('resetBtn').addEventListener('click', reset);
+
+  document.getElementById('trailOn').addEventListener('change', ev => {
+    showTrail = ev.target.checked;
+    if(!showTrail){ trail.length = 0; ghostTrail.length = 0; }
+  });
+
+  document.getElementById('ghostOn').addEventListener('change', ev => {
+    showGhost = ev.target.checked;
+    syncGhost();
+  });
+
+  window.addEventListener('keydown', ev => {
+    if(ev.target.matches('input, button')) return;
+    if(ev.code === 'Space'){ ev.preventDefault(); setRunning(!running); }
+    else if(ev.key === 'r' || ev.key === 'R'){ reset(); }
+  });
+
+  window.addEventListener('resize', () => { resize(); trail.length = 0; ghostTrail.length = 0; });
+
+  // ---- go ---------------------------------------------------------------
+  if(window.matchMedia && window.matchMedia('(pointer: coarse)').matches){
+    document.getElementById('hint').innerHTML = 'Drag a bob to aim &middot; flick to throw it';
+  }
+
+  setMode('double');
+  resize();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
