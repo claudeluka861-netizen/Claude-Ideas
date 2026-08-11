@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pendulum</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2311141B'/%3E%3Cpath d='M16 5 L24 21' stroke='%238C90A0' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='5' r='1.8' fill='%238C90A0'/%3E%3Ccircle cx='24' cy='21' r='4.5' fill='%23E8A33D'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2311141B'/%3E%3Cpath d='M16 27 L22 9' stroke='%238C90A0' stroke-width='1.5'/%3E%3Crect x='10' y='24' width='12' height='5' rx='1.5' fill='%238C90A0'/%3E%3Ccircle cx='22' cy='9' r='4.5' fill='%23E8A33D'/%3E%3C/svg%3E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -86,7 +86,7 @@
     font-size:15px;
     line-height:1.6;
     color:var(--muted);
-    max-width:56ch;
+    max-width:58ch;
     margin:0 0 32px;
   }
 
@@ -132,8 +132,8 @@
     font-weight:500;
   }
 
-  .hud .lock{ color:var(--good); }
-  .hud .fail{ color:var(--danger); }
+  .hud .up{ color:var(--good); }
+  .hud .down{ color:var(--danger); }
 
   .hint{
     position:absolute;
@@ -173,7 +173,7 @@
     border:1px solid var(--line-strong);
     border-radius:3px;
     overflow:hidden;
-    margin-bottom:20px;
+    margin-bottom:16px;
   }
 
   .seg button{
@@ -211,10 +211,7 @@
     margin-bottom:7px;
   }
 
-  .ctrl-name{
-    font-size:13px;
-    color:var(--muted);
-  }
+  .ctrl-name{ font-size:13px; color:var(--muted); }
 
   .ctrl-val{
     font-family:'JetBrains Mono', monospace;
@@ -258,14 +255,17 @@
   .ctrl.disabled .ctrl-name,
   .ctrl.disabled .ctrl-val{ color:var(--muted-2); }
 
-  /* Rows and controls that belong to one mode only. */
+  /* Blocks that belong to one mode only. */
   [data-when]{ display:none; }
-  .m-single [data-when~="single"],
-  .m-double [data-when~="double"],
-  .m-follow [data-when~="follow"]{ display:block; }
-  .readout.m-single .row[data-when~="single"],
-  .readout.m-double .row[data-when~="double"],
-  .readout.m-follow .row[data-when~="follow"]{ display:flex; }
+  .m-cart [data-when~="cart"],
+  .m-free [data-when~="free"],
+  .arms-2 [data-when~="arms2"]{ display:block; }
+  .readout .row[data-when~="all"],
+  .readout.m-cart .row[data-when~="cart"],
+  .readout.m-free .row[data-when~="free"]{ display:flex; }
+  .arms-1 .row[data-when~="arms2"],
+  .arms-1 label[data-when~="arms2"]{ display:none !important; }
+  .m-cart label[data-when~="free"]{ display:none !important; }
 
   .btn-row{
     display:flex;
@@ -354,7 +354,6 @@
     gap:10px;
   }
 
-  .readout .row[data-when~="all"]{ display:flex; }
   .readout .row span:last-child{
     color:var(--ink);
     font-variant-numeric:tabular-nums;
@@ -372,7 +371,7 @@
   @media (max-width: 860px){
     body{ padding:36px 16px 64px; }
     .layout{ grid-template-columns:1fr; }
-    canvas{ height:440px; }
+    canvas{ height:400px; }
     h1{ font-size:28px; }
   }
 </style>
@@ -380,9 +379,9 @@
 <body>
 <div class="wrap">
 
-  <p class="eyebrow">Rigid body sandbox</p>
+  <p class="eyebrow">Cart pole sandbox</p>
   <h1>Pendulum</h1>
-  <p class="sub">A physically integrated pendulum. Let it swing freely and watch chaos do its work — or switch to Follow, drag the dashed ghost into the pose you want, and make the motorised arm fight gravity to match you. Aim it straight up and see whether it can hold.</p>
+  <p class="sub">A pendulum riding a cart on a rail. Slide the dashed ghost cart left and right and the real cart chases it — the arm above only ever feels the shove and gravity, so whipping the cart across is the only way to throw it upright. Hand it to the autopilot and it swings itself up, then keeps balancing while it drives to wherever you park the ghost.</p>
 
   <div class="layout">
 
@@ -394,29 +393,32 @@
 
     <div>
       <div class="panel" id="panel">
-        <p class="panel-label">Mode</p>
+        <p class="panel-label">Rig</p>
         <div class="seg" id="modeSeg">
-          <button data-mode="single" aria-pressed="false">Single</button>
-          <button data-mode="double" aria-pressed="false">Double</button>
-          <button data-mode="follow" aria-pressed="true">Follow</button>
+          <button data-mode="cart" aria-pressed="true">Cart</button>
+          <button data-mode="free" aria-pressed="false">Fixed pivot</button>
         </div>
 
-        <div data-when="follow">
-          <p class="panel-label">Target pose</p>
-          <div class="seg" id="poseSeg">
-            <button data-pose="up">Stand up</button>
-            <button data-pose="l">Reach out</button>
-            <button data-pose="down">Hang</button>
+        <div class="seg" id="armSeg">
+          <button data-arms="1" aria-pressed="true">1 arm</button>
+          <button data-arms="2" aria-pressed="false">2 arms</button>
+        </div>
+
+        <div data-when="cart">
+          <p class="panel-label">Who drives</p>
+          <div class="seg" id="driveSeg">
+            <button data-drive="you" aria-pressed="true">You</button>
+            <button data-drive="auto" aria-pressed="false">Autopilot</button>
           </div>
 
           <div class="ctrl">
-            <div class="ctrl-head"><span class="ctrl-name">Motor power</span><span class="ctrl-val" id="v_power"></span></div>
-            <input type="range" id="power" min="0.2" max="4" step="0.05" value="1.7">
+            <div class="ctrl-head"><span class="ctrl-name">Push force</span><span class="ctrl-val" id="v_push"></span></div>
+            <input type="range" id="push" min="0.15" max="3" step="0.05" value="1.2">
           </div>
 
           <div class="ctrl">
-            <div class="ctrl-head"><span class="ctrl-name">Reflex speed</span><span class="ctrl-val" id="v_react"></span></div>
-            <input type="range" id="react" min="1.5" max="14" step="0.1" value="7">
+            <div class="ctrl-head"><span class="ctrl-name">Cart mass</span><span class="ctrl-val" id="v_mc"></span></div>
+            <input type="range" id="mc" min="0.3" max="6" step="0.05" value="1.6">
           </div>
         </div>
 
@@ -424,32 +426,32 @@
 
         <div class="ctrl" data-ctrl="l1">
           <div class="ctrl-head"><span class="ctrl-name">Arm 1 length</span><span class="ctrl-val" id="v_l1"></span></div>
-          <input type="range" id="l1" min="0.4" max="2" step="0.01" value="1.2">
+          <input type="range" id="l1" min="0.4" max="2" step="0.01" value="1.1">
         </div>
 
         <div class="ctrl" data-ctrl="l2">
           <div class="ctrl-head"><span class="ctrl-name">Arm 2 length</span><span class="ctrl-val" id="v_l2"></span></div>
-          <input type="range" id="l2" min="0.4" max="2" step="0.01" value="1.0">
+          <input type="range" id="l2" min="0.4" max="2" step="0.01" value="0.9">
         </div>
 
         <div class="ctrl" data-ctrl="m1">
           <div class="ctrl-head"><span class="ctrl-name">Mass 1</span><span class="ctrl-val" id="v_m1"></span></div>
-          <input type="range" id="m1" min="0.2" max="5" step="0.05" value="1.4">
+          <input type="range" id="m1" min="0.1" max="4" step="0.05" value="0.6">
         </div>
 
         <div class="ctrl" data-ctrl="m2">
           <div class="ctrl-head"><span class="ctrl-name">Mass 2</span><span class="ctrl-val" id="v_m2"></span></div>
-          <input type="range" id="m2" min="0.2" max="5" step="0.05" value="1.0">
+          <input type="range" id="m2" min="0.1" max="4" step="0.05" value="0.4">
         </div>
 
         <div class="ctrl" data-ctrl="g">
           <div class="ctrl-head"><span class="ctrl-name">Gravity</span><span class="ctrl-val" id="v_g"></span></div>
-          <input type="range" id="g" min="0" max="25" step="0.1" value="9.81">
+          <input type="range" id="g" min="0.5" max="25" step="0.1" value="9.81">
         </div>
 
         <div class="ctrl" data-ctrl="damp">
           <div class="ctrl-head"><span class="ctrl-name">Joint friction</span><span class="ctrl-val" id="v_damp"></span></div>
-          <input type="range" id="damp" min="0" max="0.6" step="0.005" value="0">
+          <input type="range" id="damp" min="0" max="0.6" step="0.005" value="0.02">
         </div>
 
         <div class="ctrl" data-ctrl="speed">
@@ -458,30 +460,33 @@
         </div>
 
         <label class="check"><input type="checkbox" id="trailOn" checked> Motion trail</label>
-        <label class="check" data-when="double"><input type="checkbox" id="ghostOn"> Chaos twin (+0.001 rad)</label>
+        <label class="check" data-when="free arms2"><input type="checkbox" id="ghostOn"> Chaos twin (+0.001 rad)</label>
 
         <div class="btn-row">
           <button class="act primary" id="playBtn">Pause</button>
           <button class="act ghost" id="resetBtn">Reset</button>
+        </div>
+        <div class="btn-row" data-when="cart">
+          <button class="act ghost" id="liftBtn">Stand it up</button>
         </div>
       </div>
 
       <div class="panel">
         <p class="panel-label">Telemetry</p>
         <div class="readout" id="readout">
+          <div class="row" data-when="cart"><span>cart</span><span id="r_x">—</span></div>
+          <div class="row" data-when="cart"><span>ghost</span><span id="r_xt">—</span></div>
+          <div class="row" data-when="cart"><span>push</span><span id="r_f">—</span></div>
           <div class="row" data-when="all"><span>angle 1</span><span id="r_a1">—</span></div>
-          <div class="row" data-when="all"><span>angle 2</span><span id="r_a2">—</span></div>
-          <div class="row" data-when="single double"><span>kinetic</span><span id="r_ke">—</span></div>
-          <div class="row" data-when="single double"><span>potential</span><span id="r_pe">—</span></div>
-          <div class="row" data-when="single double"><span>total</span><span id="r_te">—</span></div>
-          <div class="row" data-when="follow"><span>miss by</span><span id="r_err">—</span></div>
-          <div class="row" data-when="follow"><span>motor 1</span><span id="r_u1">—</span></div>
-          <div class="row" data-when="follow"><span>motor 2</span><span id="r_u2">—</span></div>
-          <div class="row" data-when="follow"><span>held for</span><span id="r_hold">—</span></div>
+          <div class="row" data-when="arms2 all"><span>angle 2</span><span id="r_a2">—</span></div>
+          <div class="row" data-when="cart"><span>upright for</span><span id="r_hold">—</span></div>
+          <div class="row" data-when="free"><span>kinetic</span><span id="r_ke">—</span></div>
+          <div class="row" data-when="free"><span>potential</span><span id="r_pe">—</span></div>
+          <div class="row" data-when="free"><span>total</span><span id="r_te">—</span></div>
         </div>
       </div>
 
-      <p class="foot">RK4 integration &middot; 960 Hz substeps<br>Follow mode drives both joints with torque-limited PD motors.</p>
+      <p class="foot">RK4 integration &middot; 960 Hz substeps<br>Autopilot: energy swing-up handing over to an LQR solved live from the linearised rig.</p>
     </div>
 
   </div>
@@ -494,29 +499,38 @@
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
 
-  // ---- simulation state -------------------------------------------------
-  const params = { L1:1.2, L2:1.0, m1:1.4, m2:1.0, g:9.81, damp:0, speed:1, power:1.7, react:7 };
+  // ---- parameters -------------------------------------------------------
+  const params = {
+    L1:1.1, L2:0.9, m1:0.6, m2:0.4, mc:1.6,
+    g:9.81, damp:0.02, speed:1, push:1.2
+  };
 
-  const DEFAULT = { th1: Math.PI * 0.75, th2: Math.PI * 0.5 };
-
-  let mode = 'follow';
+  let mode = 'cart';        // 'cart' | 'free'
+  let arms = 1;             // 1 | 2
+  let drive = 'you';        // 'you' | 'auto'
   let running = true;
   let showTrail = true;
   let showTwin = false;
 
-  // State vector [th1, w1, th2, w2]; angles measured from straight down, so
-  // 0 = hanging, ±PI = balanced overhead.
-  let s = [DEFAULT.th1, 0, DEFAULT.th2, 0];
+  // State is always [x, vx, th1, w1, th2, w2]. Angles run from straight down,
+  // so 0 hangs and ±PI stands up. On the fixed-pivot rig the cart is simply
+  // nailed in place.
+  let s = [0, 0, 0.0001, 0, 0.0001, 0];
   let twin = null;
 
-  // Follow mode: the pose the motors are chasing. Same pivot, same lengths.
-  let target = [Math.PI, Math.PI];
-  let lastTorque = [0, 0];
+  let targetX = 0;          // where the ghost cart sits
+  let lastF = 0;
   let holdTime = 0;
+  let simTime = 0;
 
   let trail = [];
   let twinTrail = [];
-  const TRAIL_MAX = 900;
+  const TRAIL_MAX = 700;
+
+  const RAIL_BASE = 2.4;
+  let rail = RAIL_BASE;     // half-length, metres — narrowed on small screens
+
+  const CART_W = 0.42, CART_H = 0.2;
 
   const wrap = a => {
     let x = (a + Math.PI) % (Math.PI * 2);
@@ -524,115 +538,256 @@
     return x - Math.PI;
   };
   const clamp = (v, lim) => v > lim ? lim : (v < -lim ? -lim : v);
+  const tilt = st => [wrap(st[2] - Math.PI), wrap(st[4] - Math.PI)];   // 0 = upright
 
-  // ---- control ----------------------------------------------------------
-  // Torque-limited PD at each joint, on top of a gravity feedforward. Gains
-  // scale with link inertia so the response feels the same after the mass and
-  // length sliders move, and the limits are quoted as multiples of the torque
-  // needed to hold that link out horizontally — so power below about 1.0
-  // genuinely cannot hold the arm up, whatever the gains say.
+  // ---- dynamics ---------------------------------------------------------
+  // Generalised coordinates q = [x, th1, th2] (or [x, th1] with one arm).
+  // The cart is the only thing that can be pushed: the arms are unactuated,
+  // which is the whole game — you steer them by yanking the ground away.
   //
-  // Without the feedforward the arm droops several degrees short of any pose
-  // off the vertical: PD alone can only produce holding torque by standing at
-  // an error. Cancelling the target pose's own weight is what lets it settle
-  // exactly on the ghost.
-  function control(st){
-    if(mode !== 'follow') return [0, 0];
+  //   M(q) q'' = rhs(q, q', F)
+  //
+  // Fixed-pivot mode drops the x row and solves the arms alone.
+  function accel(st, F){
+    const { L1, L2, m1, m2, mc, g, damp } = params;
+    const [x, vx, th1, w1, th2, w2] = st;
+    const two = arms === 2;
 
-    const { L1, L2, m1, m2, g, power, react } = params;
-    const I1 = (m1 + m2) * L1 * L1;
-    const I2 = m2 * L2 * L2;
+    const s1 = Math.sin(th1), c1 = Math.cos(th1);
+    const s2 = Math.sin(th2), c2 = Math.cos(th2);
+    const d = th1 - th2, sd = Math.sin(d), cd = Math.cos(d);
 
-    const e1 = wrap(target[0] - st[0]);
-    const e2 = wrap(target[1] - st[2]);
+    const mm2 = two ? m2 : 0;
 
-    // Elbow carries link 2's weight; the base carries both.
-    const ff2 = m2 * g * L2 * Math.sin(target[1]);
-    const ff1 = (m1 + m2) * g * L1 * Math.sin(target[0]) + ff2;
+    const Mxx = mc + m1 + mm2;
+    const Mx1 = (m1 + mm2) * L1 * c1;
+    const Mx2 = mm2 * L2 * c2;
+    const M11 = (m1 + mm2) * L1 * L1;
+    const M12 = mm2 * L1 * L2 * cd;
+    const M22 = mm2 * L2 * L2;
 
-    const u1 = clamp(ff1 + I1*react*react*e1 - 1.8*I1*react*st[1], power * (m1 + m2) * g * L1);
-    const u2 = clamp(ff2 + I2*react*react*e2 - 1.8*I2*react*st[3], power * m2 * g * L2);
-    return [u1, u2];
-  }
+    const Rx = F + (m1 + mm2) * L1 * s1 * w1 * w1 + mm2 * L2 * s2 * w2 * w2 - 0.4 * vx;
+    const R1 = -mm2 * L1 * L2 * sd * w2 * w2 - (m1 + mm2) * g * L1 * s1 - damp * M11 * w1;
+    const R2 =  mm2 * L1 * L2 * sd * w1 * w1 - mm2 * g * L2 * s2 - damp * M22 * (w2 - w1);
 
-  // ---- physics ----------------------------------------------------------
-  // Manipulator form  M(q)q'' + C(q,q') + G(q) = Q, solved directly for the
-  // accelerations. u1 is the base motor; u2 is the elbow motor, which pushes
-  // back on link 1 with an equal and opposite torque.
-  function deriv(st){
-    const [th1, w1, th2, w2] = st;
-    const { L1, L2, m1, m2, g, damp } = params;
-
-    if(mode === 'single'){
-      const a1 = -(g / L1) * Math.sin(th1) - damp * w1;
-      return [w1, a1, 0, 0];
+    if(mode === 'free'){
+      // Cart welded down: x'' = 0.
+      if(!two) return [0, R1 / M11, 0];
+      const det = M11 * M22 - M12 * M12;
+      return [0, (M22*R1 - M12*R2) / det, (M11*R2 - M12*R1) / det];
     }
 
-    const d = th1 - th2;
-    const sd = Math.sin(d), cd = Math.cos(d);
+    if(!two){
+      const det = Mxx * M11 - Mx1 * Mx1;
+      return [(M11*Rx - Mx1*R1) / det, (Mxx*R1 - Mx1*Rx) / det, 0];
+    }
 
-    const M11 = (m1 + m2) * L1 * L1;
-    const M12 = m2 * L1 * L2 * cd;
-    const M22 = m2 * L2 * L2;
-
-    const C1 = m2 * L1 * L2 * w2 * w2 * sd;
-    const C2 = -m2 * L1 * L2 * w1 * w1 * sd;
-
-    const G1 = (m1 + m2) * g * L1 * Math.sin(th1);
-    const G2 = m2 * g * L2 * Math.sin(th2);
-
-    const [u1, u2] = control(st);
-
-    // Generalised forces: joint friction plus motor torques.
-    const Q1 = (u1 - u2) - damp * M11 * w1 - C1 - G1;
-    const Q2 = u2 - damp * M22 * (w2 - w1) - C2 - G2;
-
-    const det = M11 * M22 - M12 * M12;
-    const a1 = ( M22 * Q1 - M12 * Q2) / det;
-    const a2 = (-M12 * Q1 + M11 * Q2) / det;
-
-    return [w1, a1, w2, a2];
+    return solve3(
+      [[Mxx, Mx1, Mx2],
+       [Mx1, M11, M12],
+       [Mx2, M12, M22]],
+      [Rx, R1, R2]
+    );
   }
 
-  function rk4(st, h){
-    const k1 = deriv(st);
-    const k2 = deriv(st.map((v,i) => v + 0.5*h*k1[i]));
-    const k3 = deriv(st.map((v,i) => v + 0.5*h*k2[i]));
-    const k4 = deriv(st.map((v,i) => v + h*k3[i]));
-    return st.map((v,i) => v + (h/6) * (k1[i] + 2*k2[i] + 2*k3[i] + k4[i]));
+  // Gaussian elimination with partial pivoting — 3x3, so the direct route is
+  // as clear as any formula and far easier to check.
+  function solve3(A, b){
+    const M = [[A[0][0],A[0][1],A[0][2],b[0]],
+               [A[1][0],A[1][1],A[1][2],b[1]],
+               [A[2][0],A[2][1],A[2][2],b[2]]];
+    for(let i = 0; i < 3; i++){
+      let p = i;
+      for(let r = i+1; r < 3; r++) if(Math.abs(M[r][i]) > Math.abs(M[p][i])) p = r;
+      if(p !== i){ const t = M[i]; M[i] = M[p]; M[p] = t; }
+      const piv = M[i][i] || 1e-12;
+      for(let r = 0; r < 3; r++){
+        if(r === i) continue;
+        const f = M[r][i] / piv;
+        for(let cI = i; cI < 4; cI++) M[r][cI] -= f * M[i][cI];
+      }
+    }
+    return [M[0][3]/(M[0][0]||1e-12), M[1][3]/(M[1][1]||1e-12), M[2][3]/(M[2][2]||1e-12)];
   }
 
-  function bobs(th1, th2){
+  function deriv(st, F){
+    const a = accel(st, F);
+    return [st[1], a[0], st[3], a[1], st[5], a[2]];
+  }
+
+  function rk4(st, h, force){
+    const f1 = deriv(st, force(st));
+    const s2 = st.map((v,i) => v + 0.5*h*f1[i]);
+    const f2 = deriv(s2, force(s2));
+    const s3 = st.map((v,i) => v + 0.5*h*f2[i]);
+    const f3 = deriv(s3, force(s3));
+    const s4 = st.map((v,i) => v + h*f3[i]);
+    const f4 = deriv(s4, force(s4));
+    return st.map((v,i) => v + (h/6) * (f1[i] + 2*f2[i] + 2*f3[i] + f4[i]));
+  }
+
+  // ---- geometry ---------------------------------------------------------
+  function joints(st){
     const { L1, L2 } = params;
-    const x1 = L1 * Math.sin(th1);
-    const y1 = -L1 * Math.cos(th1);
-    if(mode === 'single') return { x1, y1, x2:x1, y2:y1 };
-    return { x1, y1, x2: x1 + L2*Math.sin(th2), y2: y1 - L2*Math.cos(th2) };
+    const x1 = st[0] + L1 * Math.sin(st[2]);
+    const y1 = -L1 * Math.cos(st[2]);
+    if(arms === 1) return { x0:st[0], x1, y1, x2:x1, y2:y1 };
+    return { x0:st[0], x1, y1, x2: x1 + L2*Math.sin(st[4]), y2: y1 - L2*Math.cos(st[4]) };
   }
-
-  const pose = st => bobs(st[0], st[2]);
 
   function energy(st){
     const { L1, L2, m1, m2, g } = params;
-    const [th1, w1, th2, w2] = st;
-    const p = pose(st);
-
-    if(mode === 'single'){
+    const [, , th1, w1, th2, w2] = st;
+    const p = joints(st);
+    if(arms === 1){
       const ke = 0.5 * m1 * (L1*w1) * (L1*w1);
       const pe = m1 * g * (p.y1 + L1);
       return { ke, pe, te: ke + pe };
     }
-
-    const v1sq = (L1*w1) * (L1*w1);
+    const v1sq = (L1*w1)*(L1*w1);
     const v2sq = v1sq + (L2*w2)*(L2*w2) + 2*L1*L2*w1*w2*Math.cos(th1 - th2);
     const ke = 0.5*m1*v1sq + 0.5*m2*v2sq;
     const pe = m1*g*(p.y1 + L1) + m2*g*(p.y2 + L1 + L2);
     return { ke, pe, te: ke + pe };
   }
 
+  // ---- autopilot --------------------------------------------------------
+  // Two controllers with a handover. Far from upright there is nothing to
+  // balance, so pump energy in by shoving the cart in whichever direction
+  // feeds the swing. Once the arms come near vertical, an LQR takes the catch.
+  let gains = null;   // row vector over the reduced state
+
+  const stateIdx = () => arms === 1 ? [0,1,2,3] : [0,1,2,3,4,5];
+
+  function relinearise(){
+    const idx = stateIdx();
+    const n = idx.length;
+    const eq = [0, 0, Math.PI, 0, Math.PI, 0];
+    const h = 1e-5;
+
+    const full = (st, F) => deriv(st, F);
+
+    const A = [], B = [];
+    for(let i = 0; i < n; i++){ A.push(new Array(n).fill(0)); B.push(0); }
+
+    for(let j = 0; j < n; j++){
+      const up = eq.slice(), dn = eq.slice();
+      up[idx[j]] += h; dn[idx[j]] -= h;
+      const fu = full(up, 0), fd = full(dn, 0);
+      for(let i = 0; i < n; i++) A[i][j] = (fu[idx[i]] - fd[idx[i]]) / (2*h);
+    }
+    const fu = full(eq, h), fd = full(eq, -h);
+    for(let i = 0; i < n; i++) B[i] = (fu[idx[i]] - fd[idx[i]]) / (2*h);
+
+    // Penalise angle error hardest — dropping the arm is the only real failure.
+    const Q = arms === 1 ? [8, 1, 90, 6] : [6, 1, 120, 8, 120, 8];
+    const R = 0.06;
+    gains = riccati(A, B, Q, R, n) || gains;
+  }
+
+  // Infinite-horizon LQR by running the differential Riccati equation out to
+  // steady state. Slower than a proper Schur solve and completely adequate at
+  // 4-6 states, which is all this rig ever has.
+  function riccati(A, B, Qd, R, n){
+    let P = [];
+    for(let i = 0; i < n; i++){ P.push(new Array(n).fill(0)); P[i][i] = Qd[i]; }
+
+    const dt = 0.002, maxSteps = 12000;
+    for(let step = 0; step < maxSteps; step++){
+      const PB = new Array(n).fill(0);
+      for(let i = 0; i < n; i++) for(let k = 0; k < n; k++) PB[i] += P[i][k] * B[k];
+
+      let biggest = 0;
+      const dP = [];
+      for(let i = 0; i < n; i++){
+        dP.push(new Array(n).fill(0));
+        for(let j = 0; j < n; j++){
+          let v = Qd[i] * (i === j ? 1 : 0) - PB[i]*PB[j]/R;
+          for(let k = 0; k < n; k++) v += A[k][i]*P[k][j] + P[i][k]*A[k][j];
+          dP[i][j] = v;
+          const av = Math.abs(v);
+          if(av > biggest) biggest = av;
+        }
+      }
+      if(!isFinite(biggest)) return null;
+
+      for(let i = 0; i < n; i++) for(let j = 0; j < n; j++) P[i][j] += dt * dP[i][j];
+      if(biggest < 1e-5) break;
+    }
+
+    const K = new Array(n).fill(0);
+    for(let j = 0; j < n; j++){
+      let v = 0;
+      for(let i = 0; i < n; i++) v += B[i] * P[i][j];
+      K[j] = v / R;
+      if(!isFinite(K[j])) return null;
+    }
+    return K;
+  }
+
+  function forceLimit(){
+    return params.push * (params.mc + params.m1 + (arms === 2 ? params.m2 : 0)) * params.g;
+  }
+
+  function autoForce(st){
+    const lim = forceLimit();
+    const [e1, e2] = tilt(st);
+    // One arm has a wide basin of attraction, so catch it early and let the
+    // LQR finish the job. Two arms will only be caught close to vertical —
+    // grab too early and it throws the second link straight back over.
+    const near = arms === 1
+      ? Math.abs(e1) < 0.95 && Math.abs(st[3]) < 6
+      : Math.abs(e1) < 0.32 && Math.abs(e2) < 0.32 && Math.abs(st[3]) < 3.5 && Math.abs(st[5]) < 3.5;
+
+    if(near && gains){
+      const err = arms === 1
+        ? [st[0] - targetX, st[1], e1, st[3]]
+        : [st[0] - targetX, st[1], e1, st[3], e2, st[5]];
+      let F = 0;
+      for(let i = 0; i < err.length; i++) F -= gains[i] * err[i];
+      return clamp(F, lim);
+    }
+
+    // Energy pumping: E rises fastest when the cart accelerates against
+    // w*cos(theta), and the arm needs exactly the energy of standing still
+    // at the top.
+    const { L1, L2, m1, m2, g, mc } = params;
+    const e = energy(st);
+    const eUp = arms === 1
+      ? 2 * m1 * g * L1
+      : 2 * (m1 * g * L1 + m2 * g * (L1 + L2));
+    const total = mc + m1 + (arms === 2 ? m2 : 0);
+
+    // Aim a few percent past the energy of standing still at the top: joint
+    // friction bleeds the swing, and stopping exactly at the top's energy
+    // leaves the arm stalling short of vertical forever.
+    const swing = st[3] * Math.cos(st[2]);
+    const a = 3.2 * (e.te - eUp * 1.04) * (swing >= 0 ? 1 : -1);
+
+    // Keep it on the rail while it works: without this it pumps itself into
+    // the end stop and stalls there. Kept gentle — it is subtracted from the
+    // pump, and a heavy hand here drains the swing faster than it builds.
+    const centre = -1.4 * (st[0] - targetX) - 1.0 * st[1];
+    return clamp(total * (clamp(a, 9 * g) + centre), lim);
+  }
+
+  function manualForce(st){
+    // The cart chases the ghost hard, but through a real force limit — so a
+    // fast drag whips the arm instead of teleporting it.
+    const total = params.mc + params.m1 + (arms === 2 ? params.m2 : 0);
+    const w = 9;
+    const F = total * (w*w*(targetX - st[0]) - 2*0.9*w*st[1]);
+    return clamp(F, forceLimit());
+  }
+
+  const forceFor = st => {
+    if(mode !== 'cart') return 0;
+    return drive === 'auto' ? autoForce(st) : manualForce(st);
+  };
+
   // ---- view -------------------------------------------------------------
   let W = 0, H = 0, dpr = 1;
-  let pivotX = 0, pivotY = 0, scale = 100;
+  let originX = 0, baseY = 0, scale = 100;
 
   function resize(){
     dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -645,17 +800,26 @@
   }
 
   function layout(){
-    // The arm loops over its own pivot — and in Follow mode it is supposed to
-    // stand above it — so fit the whole reachable disc, not just the space
-    // below the mount.
-    const reach = mode === 'single' ? params.L1 : params.L1 + params.L2;
+    const reach = arms === 1 ? params.L1 : params.L1 + params.L2;
     const pad = 26;
-    scale = Math.min((H - 2*pad) / (2*reach), (W - 2*pad) / (2*reach));
-    pivotX = W / 2;
-    pivotY = pad + reach * scale;
+    rail = W < 520 ? RAIL_BASE * 0.6 : RAIL_BASE;
+
+    if(mode === 'free'){
+      scale = Math.min((H - 2*pad) / (2*reach), (W - 2*pad) / (2*reach));
+      originX = W / 2;
+      baseY = pad + reach * scale;
+      return;
+    }
+
+    // Room for the full swing above and below the rail, and for the rail plus
+    // half an arm's overhang across.
+    scale = Math.min((H - 2*pad) / (2*reach + CART_H), (W - 2*pad) / (2*(rail + 0.5*reach)));
+    originX = W / 2;
+    baseY = pad + reach * scale;
   }
 
-  const toScreen = (x, y) => [pivotX + x*scale, pivotY - y*scale];
+  const sx = x => originX + x * scale;
+  const sy = y => baseY - y * scale;
 
   function bobRadius(m){ return 5 + 7 * Math.cbrt(m); }
 
@@ -664,7 +828,7 @@
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     for(let i = 1; i < pts.length; i++){
-      const t = i / pts.length;          // 0 = oldest, 1 = newest
+      const t = i / pts.length;
       ctx.beginPath();
       ctx.moveTo(pts[i-1][0], pts[i-1][1]);
       ctx.lineTo(pts[i][0], pts[i][1]);
@@ -674,79 +838,120 @@
     }
   }
 
-  function drawArm(p, o){
-    const [sx1, sy1] = toScreen(p.x1, p.y1);
-    const [sx2, sy2] = toScreen(p.x2, p.y2);
+  function drawCart(x, o){
+    const w = CART_W * scale, h = CART_H * scale;
+    const cx = sx(x), cy = baseY + h/2;
+    const r = Math.min(4, h/3);
 
-    ctx.lineCap = 'round';
     ctx.setLineDash(o.dash || []);
-    ctx.strokeStyle = o.rod;
-    ctx.lineWidth = o.rodWidth;
-
+    ctx.lineWidth = o.width || 2;
     ctx.beginPath();
-    ctx.moveTo(pivotX, pivotY);
-    ctx.lineTo(sx1, sy1);
-    if(mode !== 'single') ctx.lineTo(sx2, sy2);
-    ctx.stroke();
+    if(ctx.roundRect) ctx.roundRect(cx - w/2, cy - h/2, w, h, r);
+    else ctx.rect(cx - w/2, cy - h/2, w, h);
+    if(o.fill){ ctx.fillStyle = o.fill; ctx.fill(); }
+    if(o.stroke){ ctx.strokeStyle = o.stroke; ctx.stroke(); }
     ctx.setLineDash([]);
 
-    const paint = (x, y, r, fill, stroke) => {
+    const wr = Math.max(2.5, h * 0.26);
+    ctx.fillStyle = o.wheel;
+    [-w*0.27, w*0.27].forEach(dx => {
       ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI*2);
-      ctx.fillStyle = fill;
+      ctx.arc(cx + dx, cy + h/2, wr, 0, Math.PI*2);
       ctx.fill();
-      if(stroke){
-        ctx.strokeStyle = stroke;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
-    };
+    });
+  }
 
-    paint(sx1, sy1, bobRadius(params.m1), o.bob1, o.ring);
-    if(mode !== 'single') paint(sx2, sy2, bobRadius(params.m2), o.bob2, o.ring);
+  function drawArm(p, o){
+    ctx.lineCap = 'round';
+    ctx.setLineDash([]);
+    ctx.strokeStyle = o.rod;
+    ctx.lineWidth = o.rodWidth;
+    ctx.beginPath();
+    ctx.moveTo(sx(p.x0), baseY);
+    ctx.lineTo(sx(p.x1), sy(p.y1));
+    if(arms === 2) ctx.lineTo(sx(p.x2), sy(p.y2));
+    ctx.stroke();
+
+    ctx.fillStyle = o.bob1;
+    ctx.beginPath();
+    ctx.arc(sx(p.x1), sy(p.y1), bobRadius(params.m1), 0, Math.PI*2);
+    ctx.fill();
+
+    if(arms === 2){
+      ctx.fillStyle = o.bob2;
+      ctx.beginPath();
+      ctx.arc(sx(p.x2), sy(p.y2), bobRadius(params.m2), 0, Math.PI*2);
+      ctx.fill();
+    }
   }
 
   function render(){
     ctx.clearRect(0, 0, W, H);
-
-    // Ceiling line, plus the floor the arm has to lift itself off in Follow.
     ctx.setLineDash([]);
-    ctx.strokeStyle = 'rgba(236,233,225,0.10)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(pivotX - 26, pivotY);
-    ctx.lineTo(pivotX + 26, pivotY);
-    ctx.stroke();
+
+    if(mode === 'cart'){
+      // Rail and end stops.
+      ctx.strokeStyle = 'rgba(236,233,225,0.13)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sx(-rail), baseY + CART_H*scale + 1);
+      ctx.lineTo(sx(rail), baseY + CART_H*scale + 1);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(236,233,225,0.22)';
+      [-rail, rail].forEach(e => {
+        ctx.beginPath();
+        ctx.moveTo(sx(e), baseY + CART_H*scale*0.1);
+        ctx.lineTo(sx(e), baseY + CART_H*scale + 6);
+        ctx.stroke();
+      });
+
+      // Ghost cart: the thing your finger owns.
+      ctx.strokeStyle = 'rgba(236,233,225,0.30)';
+      ctx.setLineDash([4,4]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sx(targetX), baseY - 14);
+      ctx.lineTo(sx(targetX), baseY + CART_H*scale + 8);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      drawCart(targetX, {
+        fill:'rgba(236,233,225,0.05)', stroke:'rgba(236,233,225,0.32)',
+        dash:[5,4], wheel:'rgba(236,233,225,0.22)'
+      });
+    } else {
+      ctx.strokeStyle = 'rgba(236,233,225,0.10)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(originX - 26, baseY);
+      ctx.lineTo(originX + 26, baseY);
+      ctx.stroke();
+    }
 
     if(showTrail){
-      if(mode === 'double' && showTwin && twin) drawTrail(twinTrail, '216,103,79', 0.5);
+      if(mode === 'free' && arms === 2 && showTwin && twin) drawTrail(twinTrail, '216,103,79', 0.5);
       drawTrail(trail, '232,163,61', 0.72);
     }
 
-    // Target ghost sits under the real arm, so overlap reads as a match.
-    if(mode === 'follow'){
-      drawArm(bobs(target[0], target[1]), {
-        rod:'rgba(236,233,225,0.22)', rodWidth:2, dash:[5,5],
-        bob1:'rgba(236,233,225,0.10)', bob2:'rgba(236,233,225,0.14)',
-        ring:'rgba(236,233,225,0.34)'
-      });
-    }
-
-    if(mode === 'double' && showTwin && twin){
-      drawArm(pose(twin), {
+    if(mode === 'free' && arms === 2 && showTwin && twin){
+      drawArm(joints(twin), {
         rod:'rgba(216,103,79,0.35)', rodWidth:1.5,
         bob1:'rgba(216,103,79,0.45)', bob2:'rgba(216,103,79,0.6)'
       });
     }
 
-    drawArm(pose(s), {
+    if(mode === 'cart'){
+      drawCart(s[0], { fill:'#242A36', stroke:'#8C90A0', wheel:'#5D6070' });
+    }
+
+    drawArm(joints(s), {
       rod:'rgba(236,233,225,0.42)', rodWidth:2,
       bob1:'#8C90A0', bob2:'#E8A33D'
     });
 
-    ctx.fillStyle = '#5D6070';
+    // Pivot pin on the cart roof.
+    ctx.fillStyle = '#EDEAE2';
     ctx.beginPath();
-    ctx.arc(pivotX, pivotY, 3.5, 0, Math.PI*2);
+    ctx.arc(sx(s[0]), baseY, 3, 0, Math.PI*2);
     ctx.fill();
   }
 
@@ -754,53 +959,56 @@
   const DT = 1 / 960;
   let acc = 0;
   let last = performance.now();
-  let simTime = 0;
+
+  function railStop(st){
+    if(mode !== 'cart') return st;
+    if(st[0] > rail){ st[0] = rail; if(st[1] > 0) st[1] = 0; }
+    else if(st[0] < -rail){ st[0] = -rail; if(st[1] < 0) st[1] = 0; }
+    return st;
+  }
 
   function pushTrail(){
-    const p = pose(s);
-    trail.push(toScreen(mode === 'single' ? p.x1 : p.x2, mode === 'single' ? p.y1 : p.y2));
+    const p = joints(s);
+    trail.push(arms === 1 ? [sx(p.x1), sy(p.y1)] : [sx(p.x2), sy(p.y2)]);
     if(trail.length > TRAIL_MAX) trail.shift();
 
-    if(mode === 'double' && showTwin && twin){
-      const q = pose(twin);
-      twinTrail.push(toScreen(q.x2, q.y2));
+    if(mode === 'free' && arms === 2 && showTwin && twin){
+      const q = joints(twin);
+      twinTrail.push([sx(q.x2), sy(q.y2)]);
       if(twinTrail.length > TRAIL_MAX) twinTrail.shift();
     }
   }
 
-  function missBy(){
-    return Math.max(
-      Math.abs(wrap(target[0] - s[0])),
-      Math.abs(wrap(target[1] - s[2]))
-    ) * 180 / Math.PI;
-  }
+  const upright = st => {
+    const [e1, e2] = tilt(st);
+    return arms === 1 ? Math.abs(e1) < 0.17 : Math.abs(e1) < 0.17 && Math.abs(e2) < 0.17;
+  };
 
   function frame(now){
     const raw = (now - last) / 1000;
     last = now;
 
-    // Dragging pauses a free swing, but Follow mode has to keep running so the
-    // arm chases the ghost while your finger is still down.
-    const stepping = running && (mode === 'follow' || !drag);
+    // Dragging pauses a free swing; the cart rig keeps running so the arm
+    // reacts while your finger is still moving.
+    const stepping = running && (mode === 'cart' || !drag);
 
     if(stepping){
       acc += Math.min(raw, 0.05) * params.speed;
       let steps = 0;
       while(acc >= DT && steps < 4000){
-        s = rk4(s, DT);
-        if(mode === 'double' && showTwin && twin) twin = rk4(twin, DT);
+        s = railStop(rk4(s, DT, forceFor));
+        if(mode === 'free' && arms === 2 && showTwin && twin) twin = rk4(twin, DT, () => 0);
         acc -= DT;
         simTime += DT;
         steps++;
       }
       acc = Math.min(acc, DT);
-      lastTorque = control(s);
+      lastF = forceFor(s);
 
-      if(mode === 'follow'){
-        const held = missBy() < 6;
-        holdTime = held ? holdTime + Math.min(raw, 0.05) * params.speed : 0;
+      if(mode === 'cart'){
+        const ok = upright(s);
+        holdTime = ok ? holdTime + Math.min(raw, 0.05) * params.speed : 0;
       }
-
       pushTrail();
     }
 
@@ -822,99 +1030,102 @@
   };
   const fmt = (n, p=2) => n.toFixed(p).padStart(7, ' ');
 
-  let readoutTick = 0;
+  let tick = 0;
   function updateReadout(){
-    if(readoutTick++ % 3) return;    // ~20 Hz is plenty for text
+    if(tick++ % 3) return;
 
-    out('r_a1').textContent = `${fmt(deg(s[0]), 1)}°`;
-    out('r_a2').textContent = mode === 'single' ? '—' : `${fmt(deg(s[2]), 1)}°`;
+    out('r_a1').textContent = `${fmt(deg(s[2]), 1)}°`;
+    if(arms === 2) out('r_a2').textContent = `${fmt(deg(s[4]), 1)}°`;
 
-    if(mode === 'follow'){
-      const miss = missBy();
-      const state = miss < 6 ? '<span class="lock">LOCKED</span>'
-                  : miss < 35 ? 'CHASING'
-                  : '<span class="fail">RECOVERING</span>';
-      hud.innerHTML = `<b>t</b> ${simTime.toFixed(1)}s &nbsp; ${state}<br><b>miss</b> ${miss.toFixed(1)}°`;
-      out('r_err').textContent = `${fmt(miss, 1)}°`;
-      out('r_u1').textContent = `${fmt(lastTorque[0], 1)} Nm`;
-      out('r_u2').textContent = `${fmt(lastTorque[1], 1)} Nm`;
+    if(mode === 'cart'){
+      const [e1, e2] = tilt(s);
+      const off = Math.max(Math.abs(e1), arms === 2 ? Math.abs(e2) : 0) * 180 / Math.PI;
+      const state = upright(s)
+        ? '<span class="up">UPRIGHT</span>'
+        : (off < 45 ? 'CATCHING' : '<span class="down">SWINGING</span>');
+      hud.innerHTML = `<b>t</b> ${simTime.toFixed(1)}s &nbsp; ${state}<br><b>off vertical</b> ${off.toFixed(1)}°`;
+      out('r_x').textContent  = `${fmt(s[0])} m`;
+      out('r_xt').textContent = `${fmt(targetX)} m`;
+      out('r_f').textContent  = `${fmt(lastF, 1)} N`;
       out('r_hold').textContent = `${fmt(holdTime, 1)} s`;
       return;
     }
 
     const e = energy(s);
     hud.innerHTML = `<b>t</b> ${simTime.toFixed(1)}s &nbsp; <b>E</b> ${e.te.toFixed(2)} J`
-      + (mode === 'double' && showTwin && twin ? `<br><b>divergence</b> ${separation().toFixed(3)} m` : '');
+      + (arms === 2 && showTwin && twin ? `<br><b>divergence</b> ${separation().toFixed(3)} m` : '');
     out('r_ke').textContent = `${fmt(e.ke)} J`;
     out('r_pe').textContent = `${fmt(e.pe)} J`;
     out('r_te').textContent = `${fmt(e.te)} J`;
   }
 
   function separation(){
-    const a = pose(s), b = pose(twin);
+    const a = joints(s), b = joints(twin);
     return Math.hypot(a.x2 - b.x2, a.y2 - b.y2);
   }
 
   // ---- interaction ------------------------------------------------------
-  // In Follow mode every drag moves the ghost target; the real arm is the
-  // motors' business, not yours.
   let drag = null;
 
-  function pointerPos(ev){
+  function pointerAt(ev){
     const rect = canvas.getBoundingClientRect();
     return [
-      (ev.clientX - rect.left - pivotX) / scale,
-      -(ev.clientY - rect.top - pivotY) / scale
+      (ev.clientX - rect.left - originX) / scale,
+      -(ev.clientY - rect.top - baseY) / scale
     ];
   }
 
   canvas.addEventListener('pointerdown', ev => {
-    const [x, y] = pointerPos(ev);
-    const p = mode === 'follow' ? bobs(target[0], target[1]) : pose(s);
-    const grabR = (mode === 'follow' ? 40 : 28) / scale;
+    const [x, y] = pointerAt(ev);
 
+    if(mode === 'cart'){
+      // Anywhere on the stage grabs the ghost cart — a 40px cart is no target
+      // for a thumb. Grab it by the body and it keeps its offset.
+      const onCart = Math.abs(x - targetX) < CART_W && y < 0.4 && y > -CART_H*2;
+      drag = { offset: onCart ? targetX - x : 0 };
+      targetX = clamp(x + drag.offset, rail);
+      canvas.setPointerCapture(ev.pointerId);
+      canvas.classList.add('dragging');
+      ev.preventDefault();
+      return;
+    }
+
+    const p = joints(s);
+    const grabR = 30 / scale;
     const d1 = Math.hypot(x - p.x1, y - p.y1);
     const d2 = Math.hypot(x - p.x2, y - p.y2);
 
     let which = null;
-    if(mode !== 'single' && d2 <= d1 && d2 < grabR) which = 2;
+    if(arms === 2 && d2 <= d1 && d2 < grabR) which = 2;
     else if(d1 < grabR) which = 1;
-    else if(mode !== 'single' && d2 < grabR) which = 2;
+    else if(arms === 2 && d2 < grabR) which = 2;
     if(which === null) return;
 
     canvas.setPointerCapture(ev.pointerId);
     canvas.classList.add('dragging');
-    drag = {
-      which,
-      lastAngle: mode === 'follow' ? target[which - 1] : (which === 1 ? s[0] : s[2]),
-      lastTime: performance.now(),
-      omega: 0
-    };
+    drag = { which, lastAngle: which === 1 ? s[2] : s[4], lastTime: performance.now(), omega: 0 };
     ev.preventDefault();
   });
 
   canvas.addEventListener('pointermove', ev => {
     if(!drag) return;
-    const [x, y] = pointerPos(ev);
+    const [x, y] = pointerAt(ev);
 
-    if(mode === 'follow'){
-      const p = bobs(target[0], target[1]);
-      if(drag.which === 1) target[0] = Math.atan2(x, -y);
-      else target[1] = Math.atan2(x - p.x1, -(y - p.y1));
+    if(mode === 'cart'){
+      targetX = clamp(x + drag.offset, rail);
       return;
     }
 
-    const p = pose(s);
+    const p = joints(s);
     let a;
     if(drag.which === 1){
       a = Math.atan2(x, -y);
-      s[0] = a; s[1] = 0;
+      s[2] = a; s[3] = 0;
     } else {
       a = Math.atan2(x - p.x1, -(y - p.y1));
-      s[2] = a; s[3] = 0;
+      s[4] = a; s[5] = 0;
     }
 
-    // Track angular velocity so a flick throws the bob.
     const now = performance.now();
     const dt = (now - drag.lastTime) / 1000;
     if(dt > 0.004){
@@ -930,8 +1141,8 @@
 
   function endDrag(ev){
     if(!drag) return;
-    if(mode !== 'follow'){
-      if(drag.which === 1) s[1] = drag.omega; else s[3] = drag.omega;
+    if(mode === 'free'){
+      if(drag.which === 1) s[3] = drag.omega; else s[5] = drag.omega;
       syncTwin();
     }
     drag = null;
@@ -947,15 +1158,15 @@
 
   // ---- controls ---------------------------------------------------------
   const sliders = {
-    l1:    { key:'L1',    fmt:v => v.toFixed(2) + ' m' },
-    l2:    { key:'L2',    fmt:v => v.toFixed(2) + ' m' },
-    m1:    { key:'m1',    fmt:v => v.toFixed(2) + ' kg' },
-    m2:    { key:'m2',    fmt:v => v.toFixed(2) + ' kg' },
-    g:     { key:'g',     fmt:v => v.toFixed(2) + ' m/s²' },
-    damp:  { key:'damp',  fmt:v => v.toFixed(3) },
+    l1:    { key:'L1',    fmt:v => v.toFixed(2) + ' m',    tune:true },
+    l2:    { key:'L2',    fmt:v => v.toFixed(2) + ' m',    tune:true },
+    m1:    { key:'m1',    fmt:v => v.toFixed(2) + ' kg',   tune:true },
+    m2:    { key:'m2',    fmt:v => v.toFixed(2) + ' kg',   tune:true },
+    mc:    { key:'mc',    fmt:v => v.toFixed(2) + ' kg',   tune:true },
+    g:     { key:'g',     fmt:v => v.toFixed(2) + ' m/s²', tune:true },
+    damp:  { key:'damp',  fmt:v => v.toFixed(3),           tune:true },
     speed: { key:'speed', fmt:v => v.toFixed(2) + '×' },
-    power: { key:'power', fmt:v => v.toFixed(2) + '×' },
-    react: { key:'react', fmt:v => v.toFixed(1) + ' rad/s' }
+    push:  { key:'push',  fmt:v => v.toFixed(2) + '×' }
   };
 
   Object.entries(sliders).forEach(([name, sl]) => {
@@ -971,78 +1182,82 @@
       }
     };
     sl.el.addEventListener('input', apply);
+    // Retuning the LQR costs a few milliseconds, so it waits for the release
+    // rather than running on every pixel of slider travel.
+    if(sl.tune) sl.el.addEventListener('change', relinearise);
     apply();
-  });
-
-  const POSES = {
-    up:   [Math.PI, Math.PI],
-    l:    [Math.PI/2, Math.PI/2],
-    down: [0, 0]
-  };
-
-  document.getElementById('poseSeg').addEventListener('click', ev => {
-    const b = ev.target.closest('button');
-    if(!b) return;
-    target = POSES[b.dataset.pose].slice();
   });
 
   const panel = document.getElementById('panel');
   const hint = document.getElementById('hint');
   const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 
-  const HINTS = {
-    single: 'Drag the bob to aim',
-    double: 'Drag a bob to aim &middot; flick to throw it',
-    follow: 'Drag the dashed ghost &mdash; the gold arm has to catch up'
-  };
+  function refreshClasses(){
+    const cls = ` m-${mode} arms-${arms}`;
+    panel.className = 'panel' + cls;
+    readout.className = 'readout' + cls;
 
-  function setMode(next){
-    mode = next;
-    document.querySelectorAll('#modeSeg button').forEach(b => {
-      b.setAttribute('aria-pressed', String(b.dataset.mode === next));
-    });
-
-    panel.className = 'panel m-' + next;
-    readout.className = 'readout m-' + next;
+    document.querySelectorAll('#modeSeg button').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+    document.querySelectorAll('#armSeg button').forEach(b =>
+      b.setAttribute('aria-pressed', String(+b.dataset.arms === arms)));
+    document.querySelectorAll('#driveSeg button').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.drive === drive)));
 
     ['l2','m2'].forEach(n => {
-      const off = next === 'single';
+      const off = arms === 1;
       sliders[n].el.disabled = off;
       sliders[n].el.closest('.ctrl').classList.toggle('disabled', off);
     });
 
-    hint.innerHTML = HINTS[next] + (coarse ? '' : ' &middot; space to pause &middot; R to reset');
-
-    layout();
-    reset();
+    const tail = coarse ? '' : ' &middot; space to pause &middot; R to reset';
+    hint.innerHTML = (mode === 'free'
+      ? 'Drag a bob to aim &middot; flick to throw it'
+      : drive === 'auto'
+        ? 'Drag anywhere to park the ghost cart &mdash; the autopilot drives to it'
+        : 'Drag anywhere to slide the ghost cart &mdash; whip it to swing the arm up') + tail;
   }
 
   document.getElementById('modeSeg').addEventListener('click', ev => {
     const b = ev.target.closest('button');
-    if(b) setMode(b.dataset.mode);
+    if(!b) return;
+    mode = b.dataset.mode;
+    layout(); relinearise(); reset(); refreshClasses();
+  });
+
+  document.getElementById('armSeg').addEventListener('click', ev => {
+    const b = ev.target.closest('button');
+    if(!b) return;
+    arms = +b.dataset.arms;
+    layout(); relinearise(); reset(); refreshClasses();
+  });
+
+  document.getElementById('driveSeg').addEventListener('click', ev => {
+    const b = ev.target.closest('button');
+    if(!b) return;
+    drive = b.dataset.drive;
+    refreshClasses();
   });
 
   function syncTwin(){
-    if(mode !== 'double' || !showTwin){ twin = null; return; }
-    twin = [s[0] + 0.001, s[1], s[2], s[3]];
+    if(mode !== 'free' || arms !== 2 || !showTwin){ twin = null; return; }
+    twin = [0, 0, s[2] + 0.001, s[3], s[4], s[5]];
     twinTrail.length = 0;
   }
 
   function reset(){
-    if(mode === 'follow'){
-      // Start hanging dead still, with the target overhead: the first thing
-      // you see is the arm hauling itself up off the bottom.
-      s = [0.0001, 0, 0.0001, 0];
-      target = POSES.up.slice();
+    if(mode === 'cart'){
+      s = [0, 0, 0.0001, 0, 0.0001, 0];   // hanging dead still under the cart
+      targetX = 0;
     } else {
-      s = [DEFAULT.th1, 0, mode === 'single' ? DEFAULT.th1 : DEFAULT.th2, 0];
+      s = [0, 0, Math.PI * 0.75, 0, arms === 1 ? 0 : Math.PI * 0.5, 0];
     }
     trail.length = 0;
     twinTrail.length = 0;
     simTime = 0;
     holdTime = 0;
     acc = 0;
-    lastTorque = [0, 0];
+    lastF = 0;
     last = performance.now();
     syncTwin();
   }
@@ -1056,6 +1271,14 @@
 
   playBtn.addEventListener('click', () => setRunning(!running));
   document.getElementById('resetBtn').addEventListener('click', reset);
+
+  // Places the arm upright at rest so you can watch the balance alone, without
+  // waiting on the swing-up.
+  document.getElementById('liftBtn').addEventListener('click', () => {
+    s = [s[0], 0, Math.PI, 0, Math.PI, 0];
+    trail.length = 0;
+    holdTime = 0;
+  });
 
   document.getElementById('trailOn').addEventListener('change', ev => {
     showTrail = ev.target.checked;
@@ -1076,11 +1299,11 @@
   window.addEventListener('resize', () => { resize(); trail.length = 0; twinTrail.length = 0; });
 
   // ---- go ---------------------------------------------------------------
-  setMode('follow');
   resize();
+  relinearise();
+  reset();
+  refreshClasses();
 
-  // Motion is the whole point here, so don't strip it — just hand control to
-  // anyone who has asked the system for less of it.
   if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
     setRunning(false);
   }
