@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Even Split</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2311141B'/%3E%3Crect x='3' y='13' width='26' height='3' rx='1.5' fill='%23EDEAE2'/%3E%3Cpath d='M16 17 L11 27 L21 27 Z' fill='%238C90A0'/%3E%3Crect x='5' y='7' width='9' height='6' rx='1.5' fill='%23E8A33D'/%3E%3Crect x='18' y='9' width='7' height='4' rx='1.5' fill='%2363A6C4'/%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Even Split">
+<meta name="theme-color" content="#11141B">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg:#11141B;
+    --surface:#171B24;
+    --surface-2:#1F2430;
+    --line: rgba(236,233,225,0.09);
+    --line-strong: rgba(236,233,225,0.16);
+    --ink:#EDEAE2;
+    --muted:#8C90A0;
+    --muted-2:#5D6070;
+    --gold:#E8A33D;
+    --gold-dim: rgba(232,163,61,0.13);
+    --cool:#63A6C4;
+    --cool-dim: rgba(99,166,196,0.14);
+    --danger:#D8674F;
+    --good:#6FB58A;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter', system-ui, sans-serif;
+    -webkit-text-size-adjust:100%;
+  }
+
+  body{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:48px 24px 80px;
+  }
+
+  .wrap{ width:100%; max-width:1000px; }
+
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--gold);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:16px;
+  }
+
+  .eyebrow::before{
+    content:'';
+    width:6px; height:6px;
+    background:var(--gold);
+    border-radius:50%;
+    flex-shrink:0;
+  }
+
+  h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:34px;
+    line-height:1.12;
+    letter-spacing:-0.01em;
+    margin:0 0 12px;
+  }
+
+  .sub{
+    font-size:15px;
+    line-height:1.6;
+    color:var(--muted);
+    max-width:58ch;
+    margin:0 0 32px;
+  }
+
+  .layout{
+    display:grid;
+    grid-template-columns: minmax(0,1fr) 272px;
+    gap:20px;
+    align-items:start;
+  }
+
+  .stage{
+    position:relative;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:4px;
+    overflow:hidden;
+  }
+
+  canvas{
+    display:block;
+    width:100%;
+    height:340px;
+    touch-action:none;
+    cursor:default;
+  }
+
+  canvas.grabbable{ cursor:grab; }
+  canvas.dragging{ cursor:grabbing; }
+
+  .hud{
+    position:absolute;
+    top:12px; left:14px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    line-height:1.75;
+    color:var(--muted-2);
+    pointer-events:none;
+    letter-spacing:0.02em;
+  }
+
+  .hud b{ color:var(--muted); font-weight:500; }
+  .hud .ok{ color:var(--good); }
+  .hud .bad{ color:var(--danger); }
+
+  .verdict{
+    position:absolute;
+    top:12px; right:14px;
+    font-family:'Space Grotesk', sans-serif;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:0.02em;
+    padding:6px 12px;
+    border-radius:3px;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity .25s ease;
+  }
+  .verdict.show{ opacity:1; }
+  .verdict.win{ background:rgba(111,181,138,0.15); color:var(--good); }
+  .verdict.lose{ background:rgba(216,103,79,0.15); color:var(--danger); }
+
+  .hint{
+    position:absolute;
+    bottom:12px; left:14px; right:14px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--muted-2);
+    pointer-events:none;
+  }
+
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:18px 18px 22px;
+  }
+
+  .panel + .panel{ margin-top:16px; }
+
+  .panel-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--muted-2);
+    margin:0 0 14px;
+  }
+
+  .panel-label.spaced{ margin-top:22px; }
+
+  .seg{
+    display:flex;
+    border:1px solid var(--line-strong);
+    border-radius:3px;
+    overflow:hidden;
+    margin-bottom:18px;
+  }
+
+  .seg button{
+    flex:1;
+    font-family:'Space Grotesk', sans-serif;
+    font-size:13px;
+    font-weight:600;
+    color:var(--muted);
+    background:transparent;
+    border:none;
+    padding:10px 4px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+
+  .seg button + button{ border-left:1px solid var(--line-strong); }
+  .seg button:hover{ color:var(--ink); }
+  .seg button[aria-pressed="true"]{ background:var(--gold-dim); color:var(--gold); }
+
+  :focus-visible{
+    outline:2px solid var(--gold);
+    outline-offset:3px;
+    border-radius:2px;
+  }
+
+  .ctrl{ margin-bottom:16px; }
+
+  .ctrl-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:7px;
+  }
+
+  .ctrl-name{ font-size:13px; color:var(--muted); }
+  .ctrl-name .dot{
+    display:inline-block;
+    width:7px; height:7px;
+    border-radius:50%;
+    margin-right:7px;
+    vertical-align:middle;
+  }
+  .dot.a{ background:var(--gold); }
+  .dot.b{ background:var(--cool); }
+
+  .ctrl-val{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11.5px;
+    color:var(--ink);
+  }
+
+  input[type=range]{
+    -webkit-appearance:none;
+    appearance:none;
+    width:100%;
+    height:2px;
+    background:var(--line-strong);
+    border-radius:2px;
+    outline:none;
+    margin:0;
+  }
+
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:14px; height:14px;
+    border-radius:50%;
+    background:var(--gold);
+    cursor:pointer; border:none;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:14px; height:14px;
+    border-radius:50%;
+    background:var(--gold);
+    cursor:pointer; border:none;
+  }
+  input.cool[type=range]::-webkit-slider-thumb{ background:var(--cool); }
+  input.cool[type=range]::-moz-range-thumb{ background:var(--cool); }
+  input[type=range]:disabled::-webkit-slider-thumb{ background:var(--muted-2); cursor:default; }
+  input[type=range]:disabled::-moz-range-thumb{ background:var(--muted-2); cursor:default; }
+  .ctrl.disabled .ctrl-name, .ctrl.disabled .ctrl-val{ color:var(--muted-2); }
+
+  [data-when]{ display:none; }
+  .m-play [data-when~="play"],
+  .m-sandbox [data-when~="sandbox"]{ display:block; }
+  .readout .row[data-when~="all"],
+  .readout.m-play .row[data-when~="play"]{ display:flex; }
+
+  .btn-row{ display:flex; gap:10px; margin-top:20px; }
+
+  button.act{
+    flex:1;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:14px;
+    border-radius:3px;
+    padding:12px 10px;
+    cursor:pointer;
+    transition:background .15s ease, transform .1s ease, color .15s ease, opacity .15s ease;
+  }
+  button.act:active{ transform:scale(0.98); }
+
+  button.primary{ color:#161710; background:var(--gold); border:none; }
+  button.primary:hover{ background:#F0B054; }
+  button.primary:disabled{ background:var(--surface-2); color:var(--muted-2); cursor:default; }
+
+  button.ghost{ color:var(--muted); background:transparent; border:1px solid var(--line-strong); }
+  button.ghost:hover{ color:var(--ink); border-color:var(--muted-2); }
+
+  .check{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    font-size:13px;
+    color:var(--muted);
+    cursor:pointer;
+    margin-top:14px;
+    user-select:none;
+  }
+
+  .check input{
+    appearance:none; -webkit-appearance:none;
+    width:15px; height:15px;
+    border:1px solid var(--line-strong);
+    border-radius:2px;
+    background:transparent;
+    cursor:pointer;
+    position:relative;
+    flex-shrink:0;
+    margin:0;
+  }
+  .check input:checked{ background:var(--gold); border-color:var(--gold); }
+  .check input:checked::after{
+    content:'';
+    position:absolute;
+    left:4.5px; top:1px;
+    width:4px; height:8px;
+    border:solid #161710;
+    border-width:0 2px 2px 0;
+    transform:rotate(45deg);
+  }
+
+  .readout{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11.5px;
+    line-height:1.9;
+    color:var(--muted);
+  }
+
+  .readout .row{ justify-content:space-between; gap:10px; }
+  .readout .row span:last-child{ color:var(--ink); font-variant-numeric:tabular-nums; }
+  .readout .row.rule{
+    border-top:1px solid var(--line);
+    margin-top:6px;
+    padding-top:6px;
+  }
+  .readout .row .a{ color:var(--gold); }
+  .readout .row .b{ color:var(--cool); }
+
+  .foot{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.06em;
+    color:var(--muted-2);
+    margin-top:22px;
+    line-height:1.8;
+  }
+
+  @media (max-width: 860px){
+    body{ padding:36px 16px 64px; }
+    .layout{ grid-template-columns:1fr; }
+    canvas{ height:280px; }
+    h1{ font-size:28px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Conservation of momentum</p>
+  <h1>Even Split</h1>
+  <p class="sub">Two wagons sit coupled on a plank balanced across a fulcrum. Fire the spring between them and they shove each other apart — but nothing pushes on the world outside, so their shared centre of mass cannot move. The heavy one creeps out, the light one flies, and the plank never notices.</p>
+
+  <div class="layout">
+
+    <div class="stage">
+      <canvas id="c"></canvas>
+      <div class="hud" id="hud"></div>
+      <div class="verdict" id="verdict"></div>
+      <div class="hint" id="hint"></div>
+    </div>
+
+    <div>
+      <div class="panel" id="panel">
+        <p class="panel-label">Mode</p>
+        <div class="seg" id="modeSeg">
+          <button data-mode="sandbox" aria-pressed="true">Sandbox</button>
+          <button data-mode="play" aria-pressed="false">Challenge</button>
+        </div>
+
+        <p class="panel-label">Load the wagons</p>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><span class="ctrl-name"><i class="dot a"></i>Wagon A</span><span class="ctrl-val" id="v_mA"></span></div>
+          <input type="range" id="mA" min="1" max="8" step="0.1" value="3">
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><span class="ctrl-name"><i class="dot b"></i>Wagon B</span><span class="ctrl-val" id="v_mB"></span></div>
+          <input type="range" class="cool" id="mB" min="1" max="8" step="0.1" value="3">
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><span class="ctrl-name">Spring charge</span><span class="ctrl-val" id="v_k"></span></div>
+          <input type="range" id="k" min="0.3" max="3" step="0.05" value="1.2">
+        </div>
+
+        <p class="panel-label spaced">The world</p>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><span class="ctrl-name">Gravity</span><span class="ctrl-val" id="v_g"></span></div>
+          <input type="range" id="g" min="1" max="25" step="0.1" value="9.81">
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-head"><span class="ctrl-name">Rolling friction</span><span class="ctrl-val" id="v_mu"></span></div>
+          <input type="range" id="mu" min="0" max="0.012" step="0.0005" value="0">
+        </div>
+
+        <label class="check"><input type="checkbox" id="autoPlace" checked> Park the pair balanced</label>
+
+        <div class="btn-row">
+          <button class="act primary" id="fireBtn">Fire the spring</button>
+        </div>
+        <div class="btn-row">
+          <button class="act ghost" id="resetBtn">Re-couple</button>
+          <button class="act ghost" data-when="play" id="nextBtn">New round</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <p class="panel-label">Moments about the pivot</p>
+        <div class="readout" id="readout">
+          <div class="row" data-when="all"><span class="a">A · distance</span><span id="r_dA">—</span></div>
+          <div class="row" data-when="all"><span class="b">B · distance</span><span id="r_dB">—</span></div>
+          <div class="row rule" data-when="all"><span class="a">mA × dA</span><span id="r_tA">—</span></div>
+          <div class="row" data-when="all"><span class="b">mB × dB</span><span id="r_tB">—</span></div>
+          <div class="row" data-when="all"><span>net moment</span><span id="r_net">—</span></div>
+          <div class="row rule" data-when="all"><span>tilt</span><span id="r_tilt">—</span></div>
+          <div class="row" data-when="play"><span>round</span><span id="r_round">—</span></div>
+          <div class="row" data-when="play"><span>held</span><span id="r_score">—</span></div>
+        </div>
+      </div>
+
+      <p class="foot">RK4 integration &middot; 480 Hz substeps<br>A frictionless plank is an unstable balance: any lean feeds itself.<br>Rolling friction is the other thing that breaks the trick — turn it up.</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+
+  // ---- the rig ----------------------------------------------------------
+  const BEAM_HALF = 2.6;        // m, plank half length
+  const BEAM_MASS = 7;          // kg
+  const BEAM_T    = 0.13;       // m, plank thickness
+  const WAGON_W   = 0.62;       // m
+  const WAGON_H   = 0.34;       // m
+  const MAX_TILT  = 14 * Math.PI / 180;
+  const PIVOT_H   = BEAM_HALF * Math.sin(MAX_TILT);   // fulcrum just tall enough to let an end touch down
+  const SPRING_REST = WAGON_W + 0.55;
+  // A plank pivoted exactly through its own centre of mass is neutrally
+  // stable: the smallest leftover moment integrates, unopposed, into a slam
+  // against the stop, and nothing ever settles. Real seesaws have centring
+  // bumpers at the fulcrum, so this one gets a torsion spring — stiff enough
+  // that the plank sits at a lean you can read (about 1.9° per kg·m) and
+  // settles in a couple of seconds.
+  const TORSION = 300;          // N·m per radian
+  const I_BEAM = BEAM_MASS * (2*BEAM_HALF) * (2*BEAM_HALF) / 12;
+
+  const params = { mA:3, mB:3, k:1.2, g:9.81, mu:0 };
+
+  let mode = 'sandbox';
+  let autoPlace = true;
+
+  // Beam angle: positive tilts the right-hand side up.
+  let th = 0, om = 0;
+
+  // Wagons ride the plank; s is distance from the pivot along it.
+  const A = { s:0, v:0, on:true, fall:null };
+  const B = { s:0, v:0, on:true, fall:null };
+
+  let coupled = true;
+  let crate = null;             // challenge mode ballast: { m, s }
+  let round = 1, wins = 0;
+  let verdictState = null;      // null | 'win' | 'lose'
+  let worstTilt = 0;
+  let simTime = 0;
+
+  const massOf = w => w === A ? params.mA : params.mB;
+  const clamp = (v, lo, hi) => v < lo ? lo : (v > hi ? hi : v);
+
+  // ---- dynamics ---------------------------------------------------------
+  // Generalised coordinates: the plank angle and each wagon's position along
+  // it. State = [th, om, sA, vA, sB, vB].
+  //
+  //   (I + sum m s^2) th'' = -g cos(th) sum m s  -  2 om sum m s v  -  c om
+  //   s_i'' = s_i om^2 - g sin(th) + F_i / m_i
+  //
+  // Every force between the wagons is internal, so sum m v stays put and with
+  // it sum m s: that is the whole trick, and it falls straight out of these
+  // equations rather than being staged.
+  function deriv(st){
+    const [t, w, sA, vA, sB, vB] = st;
+    const cosT = Math.cos(t), sinT = Math.sin(t);
+
+    const parts = [];
+    if(A.on) parts.push({ m: params.mA, s: sA, v: vA, i: 2 });
+    if(B.on) parts.push({ m: params.mB, s: sB, v: vB, i: 4 });
+    if(crate) parts.push({ m: crate.m, s: crate.s, v: 0, i: -1 });
+
+    let sms = 0, smsv = 0, sms2 = 0;
+    for(const p of parts){
+      sms  += p.m * p.s;
+      smsv += p.m * p.s * p.v;
+      sms2 += p.m * p.s * p.s;
+    }
+
+    const inertia = I_BEAM + sms2;
+    const damp = 2 * 0.75 * Math.sqrt(TORSION * inertia);     // ~critically damped at any load
+
+    const alpha = (
+      -params.g * cosT * sms          // the load's moment about the pivot
+      - TORSION * t                   // centring spring
+      - 2 * w * smsv                  // load sliding outward as it turns
+      - damp * w
+    ) / inertia;
+
+    // Spring: only while the coil is still compressed, and always equal and
+    // opposite. Nothing here can shift the pair's centre of mass.
+    let F = 0;
+    if(!coupled && A.on && B.on){
+      const gap = sB - sA;
+      // Deliberately a gentle shove: the point is to watch the moments stay
+      // matched for ten seconds, not to fire the wagons off the ends.
+      if(gap < SPRING_REST) F = params.k * 3 * (SPRING_REST - gap);
+    }
+
+    const accel = (wag, s, v, sign) => {
+      if(!wag.on) return 0;
+      if(coupled) return 0;                    // brakes on until the spring fires
+      const m = massOf(wag);
+      let f = sign * F;
+      // Coulomb friction regularised through tanh: full drag once rolling,
+      // fading to nothing at a standstill. A hard sign() here would fight the
+      // spring at the instant of release and pin the wagons in place.
+      if(params.mu > 0) f -= Math.tanh(v / 0.03) * params.mu * m * params.g * cosT;
+      return s * w * w - params.g * sinT + f / m;
+    };
+
+    return [
+      w, alpha,
+      coupled || !A.on ? 0 : vA, accel(A, sA, vA, -1),
+      coupled || !B.on ? 0 : vB, accel(B, sB, vB, +1)
+    ];
+  }
+
+  function rk4(st, h){
+    const k1 = deriv(st);
+    const k2 = deriv(st.map((v,i) => v + 0.5*h*k1[i]));
+    const k3 = deriv(st.map((v,i) => v + 0.5*h*k2[i]));
+    const k4 = deriv(st.map((v,i) => v + h*k3[i]));
+    return st.map((v,i) => v + (h/6)*(k1[i] + 2*k2[i] + 2*k3[i] + k4[i]));
+  }
+
+  // ---- placement --------------------------------------------------------
+  // Coupled, the pair is one body. Parking it so its combined centre of mass
+  // sits over the pivot is what makes it balance *before* the split — with
+  // unequal loads that means the heavy wagon starts closer in, which surprises
+  // people more than the split itself.
+  function parkPair(centre){
+    const M = params.mA + params.mB;
+    A.s = centre - (params.mB / M) * WAGON_W;
+    B.s = centre + (params.mA / M) * WAGON_W;
+    A.v = B.v = 0;
+  }
+
+  function balancedCentre(){
+    const M = params.mA + params.mB;
+    return crate ? -(crate.m * crate.s) / M : 0;
+  }
+
+  function recouple(){
+    coupled = true;
+    A.on = B.on = true;
+    A.fall = B.fall = null;
+    th = 0; om = 0;
+    simTime = 0;
+    worstTilt = 0;
+    verdictState = null;
+    parkPair(autoPlace ? balancedCentre() : 0);
+  }
+
+  function newRound(){
+    round++;
+    const side = Math.random() < 0.5 ? -1 : 1;
+    crate = {
+      m: 2 + Math.random() * 5,
+      s: side * (0.9 + Math.random() * 1.4)
+    };
+    recouple();
+    parkPair(0);      // never hand out a round that is already solved
+  }
+
+  // ---- loop -------------------------------------------------------------
+  const DT = 1 / 480;
+  let acc = 0, last = performance.now();
+
+  function step(h){
+    let st = rk4([th, om, A.s, A.v, B.s, B.v], h);
+    th = st[0]; om = st[1];
+    A.s = st[2]; A.v = st[3];
+    B.s = st[4]; B.v = st[5];
+
+    // Plank grounds out at full tilt.
+    if(th > MAX_TILT){ th = MAX_TILT; om = om > 0 ? -0.25*om : om; }
+    if(th < -MAX_TILT){ th = -MAX_TILT; om = om < 0 ? -0.25*om : om; }
+
+    // Off the end.
+    [A, B].forEach(w => {
+      if(w.on && Math.abs(w.s) > BEAM_HALF){
+        w.on = false;
+        const dir = Math.sign(w.s);
+        w.fall = {
+          x: w.s * Math.cos(th),
+          y: w.s * Math.sin(th) + PIVOT_H,
+          vx: w.v * Math.cos(th),
+          vy: w.v * Math.sin(th),
+          spin: dir * 2.2,
+          rot: th
+        };
+        if(mode === 'play' && verdictState === null) settle();
+      }
+    });
+
+    [A, B].forEach(w => {
+      if(!w.fall) return;
+      w.fall.vy -= params.g * h;
+      w.fall.x += w.fall.vx * h;
+      w.fall.y += w.fall.vy * h;
+      w.fall.rot += w.fall.spin * h;
+    });
+
+    if(!coupled){
+      worstTilt = Math.max(worstTilt, Math.abs(th));
+      if(mode === 'play' && verdictState === null &&
+         (Math.abs(th) > 3 * Math.PI/180 || simTime > 5)) settle();
+    }
+    simTime += h;
+  }
+
+  function settle(){
+    verdictState = worstTilt <= 3 * Math.PI / 180 ? 'win' : 'lose';
+    if(verdictState === 'win') wins++;
+    const el = document.getElementById('verdict');
+    el.textContent = verdictState === 'win' ? 'HELD LEVEL' : 'TIPPED';
+    el.className = 'verdict show ' + verdictState;
+  }
+
+  function frame(now){
+    const raw = Math.min((now - last) / 1000, 0.05);
+    last = now;
+    acc += raw;
+    let n = 0;
+    while(acc >= DT && n < 600){ step(DT); acc -= DT; n++; }
+    render();
+    readout();
+    requestAnimationFrame(frame);
+  }
+
+  // ---- view -------------------------------------------------------------
+  let W = 0, H = 0, dpr = 1, scale = 100, pivotX = 0, groundY = 0, pivotY = 0;
+
+  function resize(){
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = canvas.getBoundingClientRect();
+    W = r.width; H = r.height;
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const pad = 24;
+    scale = Math.min(
+      (W - 2*pad) / (2 * (BEAM_HALF + 0.35)),
+      (H - 2*pad) / (PIVOT_H + BEAM_HALF*Math.sin(MAX_TILT) + WAGON_H + 0.9)
+    );
+    pivotX = W / 2;
+    groundY = H - pad - 6;
+    pivotY = groundY - PIVOT_H * scale;
+  }
+
+  function roundRect(x, y, w, h, r){
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(x, y, w, h, r);
+    else ctx.rect(x, y, w, h);
+  }
+
+  // Cargo stacks up on the roof, so a heavy wagon reads as heavy.
+  function drawWagon(s, m, colour, roof){
+    const w = WAGON_W * scale, h = WAGON_H * scale;
+    const x = s * scale, y = -BEAM_T/2 * scale;   // beam-local: y up is negative
+
+    ctx.save();
+    ctx.translate(x, y);
+
+    // body
+    ctx.fillStyle = colour.body;
+    roundRect(-w/2, -h, w, h, 3);
+    ctx.fill();
+
+    // window band
+    ctx.fillStyle = colour.glass;
+    roundRect(-w/2 + w*0.12, -h + h*0.18, w*0.76, h*0.34, 2);
+    ctx.fill();
+
+    // cargo blocks: one per 1.5 kg above the empty wagon
+    const blocks = Math.max(0, Math.round((m - 1) / 1.5));
+    const bw = w * 0.26, bh = h * 0.3;
+    for(let i = 0; i < blocks; i++){
+      const col = i % 3, row = Math.floor(i / 3);
+      ctx.fillStyle = roof;
+      roundRect(-w/2 + w*0.09 + col * (bw + w*0.055), -h - bh - row * (bh + 2), bw, bh, 1.5);
+      ctx.fill();
+    }
+
+    // wheels
+    ctx.fillStyle = colour.wheel;
+    [-w*0.26, w*0.26].forEach(dx => {
+      ctx.beginPath();
+      ctx.arc(dx, 0, Math.max(2.5, h*0.15), 0, Math.PI*2);
+      ctx.fill();
+    });
+
+    ctx.restore();
+  }
+
+  function drawFallen(w, colour){
+    const f = w.fall;
+    ctx.save();
+    ctx.translate(pivotX + f.x * scale, groundY - f.y * scale);
+    ctx.rotate(-f.rot);
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = colour.body;
+    roundRect(-WAGON_W*scale/2, -WAGON_H*scale, WAGON_W*scale, WAGON_H*scale, 3);
+    ctx.fill();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawSpring(){
+    if(coupled || !A.on || !B.on) return;
+    const gap = B.s - A.s;
+    if(gap >= SPRING_REST) return;
+
+    const x1 = (A.s + WAGON_W/2) * scale;
+    const x2 = (B.s - WAGON_W/2) * scale;
+    const y = -(BEAM_T/2 + WAGON_H*0.45) * scale;
+    const coils = 7;
+    const amp = Math.min(7, (x2 - x1) * 0.22 + 3);
+
+    ctx.strokeStyle = 'rgba(236,233,225,0.5)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(x1, y);
+    for(let i = 0; i <= coils; i++){
+      const t = i / coils;
+      ctx.lineTo(x1 + (x2 - x1) * t, y + (i % 2 ? amp : -amp));
+    }
+    ctx.lineTo(x2, y);
+    ctx.stroke();
+  }
+
+  // Dimension line from the pivot out to a wagon, drawn in plank-local space
+  // so it tilts with the plank. Row keeps A and B from overprinting when the
+  // wagons sit close in.
+  function drawArm(s, m, colour, row){
+    if(Math.abs(s) < 0.06) return;
+    const y = (BEAM_T/2) * scale + 13 + row * 14;
+    const x = s * scale;
+
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(x, y);
+    ctx.moveTo(0, y - 3); ctx.lineTo(0, y + 3);
+    ctx.moveTo(x, y - 3); ctx.lineTo(x, y + 3);
+    ctx.stroke();
+
+    ctx.fillStyle = colour;
+    ctx.font = "500 10px 'JetBrains Mono', ui-monospace, monospace";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`${Math.abs(s).toFixed(2)} m × ${m.toFixed(1)} kg`, x / 2, y - 3);
+  }
+
+  const COL_A = { body:'#E8A33D', glass:'rgba(23,27,36,0.55)', wheel:'#8A6224' };
+  const COL_B = { body:'#63A6C4', glass:'rgba(23,27,36,0.55)', wheel:'#3B6A80' };
+
+  function render(){
+    ctx.clearRect(0, 0, W, H);
+
+    // ground
+    ctx.strokeStyle = 'rgba(236,233,225,0.12)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, groundY + 0.5);
+    ctx.lineTo(W, groundY + 0.5);
+    ctx.stroke();
+
+    // fulcrum
+    const fw = 0.42 * scale, fh = PIVOT_H * scale;
+    ctx.fillStyle = '#242A36';
+    ctx.strokeStyle = 'rgba(236,233,225,0.20)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pivotX, pivotY);
+    ctx.lineTo(pivotX + fw/2, groundY);
+    ctx.lineTo(pivotX - fw/2, groundY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // centre mark
+    ctx.strokeStyle = 'rgba(236,233,225,0.14)';
+    ctx.setLineDash([3,4]);
+    ctx.beginPath();
+    ctx.moveTo(pivotX, pivotY - 0.42*scale);
+    ctx.lineTo(pivotX, groundY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.save();
+    ctx.translate(pivotX, pivotY);
+    ctx.rotate(-th);            // canvas y runs down, so world CCW is a negative rotation
+
+    // plank
+    ctx.fillStyle = '#2B313E';
+    roundRect(-BEAM_HALF*scale, -BEAM_T/2*scale, 2*BEAM_HALF*scale, BEAM_T*scale, 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(236,233,225,0.16)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // distance ticks every half metre
+    ctx.fillStyle = 'rgba(236,233,225,0.20)';
+    for(let d = 0.5; d <= BEAM_HALF - 0.01; d += 0.5){
+      [-1, 1].forEach(sgn => {
+        const big = Math.abs(d % 1) < 1e-6;
+        ctx.fillRect(sgn*d*scale - 0.5, -BEAM_T/2*scale - (big ? 5 : 3), 1, big ? 5 : 3);
+      });
+    }
+
+    if(crate){
+      const cw = 0.44*scale, ch = 0.34*scale;
+      ctx.fillStyle = '#6E7386';
+      roundRect(crate.s*scale - cw/2, -BEAM_T/2*scale - ch, cw, ch, 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(23,27,36,0.7)';
+      ctx.font = `500 ${Math.max(9, ch*0.32)}px 'JetBrains Mono', monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(crate.m.toFixed(1), crate.s*scale, -BEAM_T/2*scale - ch*0.38);
+    }
+
+    drawSpring();
+    if(A.on) drawWagon(A.s, params.mA, COL_A, '#F3C98A');
+    if(B.on) drawWagon(B.s, params.mB, COL_B, '#A7CEDE');
+
+    // The two lever arms, called out under the plank — the whole point of the
+    // thing is that these two numbers move in lockstep with the masses.
+    if(A.on) drawArm(A.s, params.mA, 'rgba(232,163,61,0.75)', 0);
+    if(B.on) drawArm(B.s, params.mB, 'rgba(99,166,196,0.75)', 1);
+
+    ctx.restore();
+
+    if(A.fall) drawFallen(A, COL_A);
+    if(B.fall) drawFallen(B, COL_B);
+  }
+
+  // ---- readouts ---------------------------------------------------------
+  const out = id => document.getElementById(id);
+  const hud = document.getElementById('hud');
+  const fmt = (n, p=2) => n.toFixed(p).padStart(7, ' ');
+
+  let tick = 0;
+  function readout(){
+    if(tick++ % 3) return;
+
+    const dA = A.on ? Math.abs(A.s) : 0;
+    const dB = B.on ? Math.abs(B.s) : 0;
+    const tA = A.on ? params.mA * A.s : 0;
+    const tB = B.on ? params.mB * B.s : 0;
+    const net = tA + tB + (crate ? crate.m * crate.s : 0);
+    const deg = th * 180 / Math.PI;
+
+    out('r_dA').textContent = A.on ? `${fmt(dA)} m` : 'off';
+    out('r_dB').textContent = B.on ? `${fmt(dB)} m` : 'off';
+    out('r_tA').textContent = `${fmt(Math.abs(tA))} kg·m`;
+    out('r_tB').textContent = `${fmt(Math.abs(tB))} kg·m`;
+    out('r_net').textContent = `${fmt(net)} kg·m`;
+    out('r_tilt').textContent = `${fmt(deg, 2)}°`;
+
+    const level = Math.abs(deg) < 0.35;
+    hud.innerHTML =
+      `<b>tilt</b> <span class="${level ? 'ok' : (Math.abs(deg) > 3 ? 'bad' : '')}">${deg.toFixed(2)}°</span>`
+      + ` &nbsp; <b>net moment</b> ${net.toFixed(2)} kg·m`
+      + `<br><b>mA·dA</b> ${Math.abs(tA).toFixed(2)} &nbsp; <b>mB·dB</b> ${Math.abs(tB).toFixed(2)} kg·m`
+      + (coupled ? '' : `<br><b>t</b> ${simTime.toFixed(1)}s`);
+
+    if(mode === 'play'){
+      out('r_round').textContent = `${round}`;
+      out('r_score').textContent = `${wins}/${round}`;
+    }
+  }
+
+  // ---- interaction ------------------------------------------------------
+  // Only the coupled pair can be shoved along the plank, and only before the
+  // spring goes off.
+  let drag = null;
+
+  function beamCoord(ev){
+    const r = canvas.getBoundingClientRect();
+    const px = (ev.clientX - r.left - pivotX) / scale;
+    const py = -(ev.clientY - r.top - pivotY) / scale;
+    return px * Math.cos(th) + py * Math.sin(th);
+  }
+
+  canvas.addEventListener('pointerdown', ev => {
+    if(!coupled) return;
+    const s = beamCoord(ev);
+    const centre = (A.s + B.s) / 2;
+    if(Math.abs(s - centre) > WAGON_W * 1.6) return;
+    drag = { grab: s - centre };
+    canvas.setPointerCapture(ev.pointerId);
+    canvas.classList.add('dragging');
+    ev.preventDefault();
+  });
+
+  canvas.addEventListener('pointermove', ev => {
+    if(!drag || !coupled) return;
+    const M = params.mA + params.mB;
+    const left  = (params.mB / M) * WAGON_W;
+    const right = (params.mA / M) * WAGON_W;
+    const centre = clamp(beamCoord(ev) - drag.grab, -BEAM_HALF + left + 0.05, BEAM_HALF - right - 0.05);
+    parkPair(centre);
+  });
+
+  function endDrag(ev){
+    if(!drag) return;
+    drag = null;
+    canvas.classList.remove('dragging');
+    if(canvas.hasPointerCapture && ev && canvas.hasPointerCapture(ev.pointerId)){
+      canvas.releasePointerCapture(ev.pointerId);
+    }
+  }
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+
+  // ---- controls ---------------------------------------------------------
+  const sliders = {
+    mA: { key:'mA', fmt:v => v.toFixed(1) + ' kg' },
+    mB: { key:'mB', fmt:v => v.toFixed(1) + ' kg' },
+    k:  { key:'k',  fmt:v => v.toFixed(2) + '×' },
+    g:  { key:'g',  fmt:v => v.toFixed(2) + ' m/s²' },
+    mu: { key:'mu', fmt:v => v.toFixed(3) }
+  };
+
+  Object.entries(sliders).forEach(([name, sl]) => {
+    sl.el = document.getElementById(name);
+    sl.out = document.getElementById('v_' + name);
+    const apply = () => {
+      params[sl.key] = parseFloat(sl.el.value);
+      sl.out.textContent = sl.fmt(params[sl.key]);
+      // Reloading a coupled wagon re-parks the pair, since the balance point
+      // moves with the loads.
+      if((name === 'mA' || name === 'mB') && coupled){
+        parkPair(autoPlace ? balancedCentre() : (A.s + B.s) / 2);
+      }
+    };
+    sl.el.addEventListener('input', apply);
+    apply();
+  });
+
+  const panel = document.getElementById('panel');
+  const readoutEl = document.getElementById('readout');
+  const hintEl = document.getElementById('hint');
+  const fireBtn = document.getElementById('fireBtn');
+  const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
+  function refresh(){
+    panel.className = 'panel m-' + mode;
+    readoutEl.className = 'readout m-' + mode;
+    document.querySelectorAll('#modeSeg button').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+
+    fireBtn.disabled = !coupled;
+    fireBtn.textContent = coupled ? 'Fire the spring' : 'Rolling…';
+    canvas.classList.toggle('grabbable', coupled);
+
+    document.getElementById('verdict').className =
+      'verdict' + (verdictState ? ' show ' + verdictState : '');
+
+    hintEl.innerHTML = coupled
+      ? (mode === 'play'
+          ? 'Load the wagons and drag the pair until the plank sits level'
+          : 'Drag the coupled pair along the plank &middot; then fire the spring')
+      : 'Watch the moments &mdash; mA·dA and mB·dB stay equal';
+  }
+
+  document.getElementById('modeSeg').addEventListener('click', ev => {
+    const b = ev.target.closest('button');
+    if(!b) return;
+    mode = b.dataset.mode;
+    if(mode === 'play'){
+      round = 0; wins = 0;
+      newRound();
+    } else {
+      crate = null;
+      recouple();
+    }
+    refresh();
+  });
+
+  fireBtn.addEventListener('click', () => {
+    if(!coupled) return;
+    coupled = false;
+    worstTilt = Math.abs(th);
+    simTime = 0;
+    refresh();
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => { recouple(); refresh(); });
+  document.getElementById('nextBtn').addEventListener('click', () => { newRound(); refresh(); });
+
+  document.getElementById('autoPlace').addEventListener('change', ev => {
+    autoPlace = ev.target.checked;
+    if(coupled) parkPair(autoPlace ? balancedCentre() : (A.s + B.s) / 2);
+  });
+
+  window.addEventListener('keydown', ev => {
+    if(ev.target.matches('input, button')) return;
+    if(ev.code === 'Space'){ ev.preventDefault(); if(coupled) fireBtn.click(); }
+    else if(ev.key === 'r' || ev.key === 'R'){ recouple(); refresh(); }
+  });
+
+  window.addEventListener('resize', resize);
+
+  // ---- go ---------------------------------------------------------------
+  resize();
+  recouple();
+  refresh();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
