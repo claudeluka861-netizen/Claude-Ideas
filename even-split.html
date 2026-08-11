@@ -362,7 +362,7 @@
 
   <p class="eyebrow">Conservation of momentum</p>
   <h1>Even Split</h1>
-  <p class="sub">Two wagons sit coupled on a plank balanced across a fulcrum. Fire the spring between them and they shove each other apart — but nothing pushes on the world outside, so their shared centre of mass cannot move. The heavy one creeps out, the light one flies, and the plank never notices.</p>
+  <p class="sub">Two wagons sit coupled on a plank balanced across a fulcrum. Blow the charge between them and they go off like a gunshot — but every force in that bang is internal, so their shared centre of mass cannot move an inch. The heavy one is thrown slowly, the light one is thrown far, and the plank never notices. Drop it into slow motion if it goes past too fast to believe.</p>
 
   <div class="layout">
 
@@ -394,7 +394,7 @@
         </div>
 
         <div class="ctrl">
-          <div class="ctrl-head"><span class="ctrl-name">Spring charge</span><span class="ctrl-val" id="v_k"></span></div>
+          <div class="ctrl-head"><span class="ctrl-name">Charge</span><span class="ctrl-val" id="v_k"></span></div>
           <input type="range" id="k" min="0.3" max="3" step="0.05" value="1.2">
         </div>
 
@@ -410,7 +410,13 @@
           <input type="range" id="mu" min="0" max="0.012" step="0.0005" value="0">
         </div>
 
+        <div class="ctrl">
+          <div class="ctrl-head"><span class="ctrl-name">Slow motion</span><span class="ctrl-val" id="v_slow"></span></div>
+          <input type="range" id="slow" min="0.08" max="1" step="0.01" value="1">
+        </div>
+
         <label class="check"><input type="checkbox" id="autoPlace" checked> Park the pair balanced</label>
+        <label class="check"><input type="checkbox" id="sound" checked> Sound</label>
 
         <div class="btn-row">
           <button class="act primary" id="fireBtn">Fire the spring</button>
@@ -435,7 +441,7 @@
         </div>
       </div>
 
-      <p class="foot">RK4 integration &middot; 480 Hz substeps<br>A frictionless plank is an unstable balance: any lean feeds itself.<br>Rolling friction is the other thing that breaks the trick — turn it up.</p>
+      <p class="foot">RK4 integration &middot; 480 Hz substeps<br>The charge is an impulse split equal and opposite, so the pair's momentum stays at zero however hard it goes off.<br>Rolling friction is the thing that breaks the trick — turn it up.</p>
     </div>
 
   </div>
@@ -456,7 +462,6 @@
   const WAGON_H   = 0.34;       // m
   const MAX_TILT  = 14 * Math.PI / 180;
   const PIVOT_H   = BEAM_HALF * Math.sin(MAX_TILT);   // fulcrum just tall enough to let an end touch down
-  const SPRING_REST = WAGON_W + 0.55;
   // A plank pivoted exactly through its own centre of mass is neutrally
   // stable: the smallest leftover moment integrates, unopposed, into a slam
   // against the stop, and nothing ever settles. Real seesaws have centring
@@ -466,7 +471,8 @@
   const TORSION = 300;          // N·m per radian
   const I_BEAM = BEAM_MASS * (2*BEAM_HALF) * (2*BEAM_HALF) / 12;
 
-  const params = { mA:3, mB:3, k:1.2, g:9.81, mu:0 };
+  const params = { mA:3, mB:3, k:1.2, g:9.81, mu:0, slow:1 };
+  let soundOn = true;
 
   let mode = 'sandbox';
   let autoPlace = true;
@@ -524,24 +530,17 @@
       - damp * w
     ) / inertia;
 
-    // Spring: only while the coil is still compressed, and always equal and
-    // opposite. Nothing here can shift the pair's centre of mass.
-    let F = 0;
-    if(!coupled && A.on && B.on){
-      const gap = sB - sA;
-      // Deliberately a gentle shove: the point is to watch the moments stay
-      // matched for ten seconds, not to fire the wagons off the ends.
-      if(gap < SPRING_REST) F = params.k * 3 * (SPRING_REST - gap);
-    }
-
+    // The charge goes off as an impulse at the instant of firing, not as a
+    // spring pushing over time — so from here on the wagons are coasting and
+    // the only forces left are gravity along the plank and friction.
     const accel = (wag, s, v, sign) => {
       if(!wag.on) return 0;
-      if(coupled) return 0;                    // brakes on until the spring fires
+      if(coupled) return 0;                    // brakes on until it blows
       const m = massOf(wag);
-      let f = sign * F;
+      let f = 0;
       // Coulomb friction regularised through tanh: full drag once rolling,
-      // fading to nothing at a standstill. A hard sign() here would fight the
-      // spring at the instant of release and pin the wagons in place.
+      // fading to nothing at a standstill. A hard sign() here would chatter
+      // around zero velocity instead of letting a wagon coast to rest.
       if(params.mu > 0) f -= Math.tanh(v / 0.03) * params.mu * m * params.g * cosT;
       return s * w * w - params.g * sinT + f / m;
     };
@@ -655,12 +654,80 @@
     el.className = 'verdict show ' + verdictState;
   }
 
+  // ---- the bang ---------------------------------------------------------
+  // Muzzle flash, debris and a shake, all on the same clock as the sim so
+  // slow motion slows the blast too.
+  const fx = { flash:0, shake:0, bx:0, by:0, parts:[] };
+
+  function boom(x, y){
+    fx.flash = 1; fx.shake = 1; fx.bx = x; fx.by = y;
+    for(let i = 0; i < 42; i++){
+      const a = Math.random() * Math.PI * 2;
+      const sp = 1.5 + Math.random() * 6;
+      fx.parts.push({
+        x, y,
+        vx: Math.cos(a) * sp,
+        vy: Math.abs(Math.sin(a)) * sp * 0.85 + 0.4,
+        life: 0.5 + Math.random() * 0.5,
+        hot: Math.random() < 0.55
+      });
+    }
+  }
+
+  function updateFx(h){
+    fx.flash = Math.max(0, fx.flash - h * 3.2);
+    fx.shake = Math.max(0, fx.shake - h * 3.5);
+    for(const p of fx.parts){
+      p.vy -= params.g * h * 0.55;
+      p.x += p.vx * h;
+      p.y += p.vy * h;
+      p.life -= h;
+    }
+    if(fx.parts.length) fx.parts = fx.parts.filter(p => p.life > 0);
+  }
+
+  // Gunshot, synthesised: a filtered noise crack over a short low thump.
+  let audio = null;
+  function bang(){
+    if(!soundOn) return;
+    try{
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if(audio.state === 'suspended') audio.resume();
+      const t0 = audio.currentTime;
+
+      const len = Math.floor(audio.sampleRate * 0.3);
+      const buf = audio.createBuffer(1, len, audio.sampleRate);
+      const d = buf.getChannelData(0);
+      for(let i = 0; i < len; i++) d[i] = (Math.random()*2 - 1) * Math.pow(1 - i/len, 2.5);
+
+      const src = audio.createBufferSource(); src.buffer = buf;
+      const lp = audio.createBiquadFilter(); lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(3400, t0);
+      lp.frequency.exponentialRampToValueAtTime(320, t0 + 0.26);
+      const g = audio.createGain();
+      g.gain.setValueAtTime(0.5, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.3);
+      src.connect(lp); lp.connect(g); g.connect(audio.destination);
+      src.start(t0);
+
+      const osc = audio.createOscillator(); osc.type = 'sine';
+      osc.frequency.setValueAtTime(130, t0);
+      osc.frequency.exponentialRampToValueAtTime(38, t0 + 0.18);
+      const og = audio.createGain();
+      og.gain.setValueAtTime(0.45, t0);
+      og.gain.exponentialRampToValueAtTime(0.001, t0 + 0.24);
+      osc.connect(og); og.connect(audio.destination);
+      osc.start(t0); osc.stop(t0 + 0.26);
+    }catch(e){ /* sound is a nicety, never a failure */ }
+  }
+
   function frame(now){
-    const raw = Math.min((now - last) / 1000, 0.05);
+    const raw = Math.min((now - last) / 1000, 0.05) * params.slow;
     last = now;
     acc += raw;
     let n = 0;
     while(acc >= DT && n < 600){ step(DT); acc -= DT; n++; }
+    updateFx(raw);
     render();
     readout();
     requestAnimationFrame(frame);
@@ -745,27 +812,25 @@
     ctx.globalAlpha = 1;
   }
 
-  function drawSpring(){
-    if(coupled || !A.on || !B.on) return;
-    const gap = B.s - A.s;
-    if(gap >= SPRING_REST) return;
+  // The charge sitting between the couplers, waiting to go off.
+  function drawCharge(){
+    if(!coupled || !A.on || !B.on) return;
+    const x = (A.s + B.s) / 2 * scale;
+    const y = -(BEAM_T/2 + WAGON_H*0.42) * scale;
+    const r = Math.max(3, WAGON_H * scale * 0.16);
 
-    const x1 = (A.s + WAGON_W/2) * scale;
-    const x2 = (B.s - WAGON_W/2) * scale;
-    const y = -(BEAM_T/2 + WAGON_H*0.45) * scale;
-    const coils = 7;
-    const amp = Math.min(7, (x2 - x1) * 0.22 + 3);
-
-    ctx.strokeStyle = 'rgba(236,233,225,0.5)';
+    ctx.strokeStyle = 'rgba(236,233,225,0.35)';
     ctx.lineWidth = 1.6;
+    ctx.setLineDash([]);
     ctx.beginPath();
-    ctx.moveTo(x1, y);
-    for(let i = 0; i <= coils; i++){
-      const t = i / coils;
-      ctx.lineTo(x1 + (x2 - x1) * t, y + (i % 2 ? amp : -amp));
-    }
-    ctx.lineTo(x2, y);
+    ctx.moveTo((A.s + WAGON_W/2) * scale, y);
+    ctx.lineTo((B.s - WAGON_W/2) * scale, y);
     ctx.stroke();
+
+    ctx.fillStyle = '#D8674F';
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.fill();
   }
 
   // Dimension line from the pivot out to a wagon, drawn in plank-local space
@@ -800,6 +865,12 @@
     ctx.clearRect(0, 0, W, H);
 
     // ground
+    ctx.save();
+    if(fx.shake > 0){
+      const k = fx.shake * fx.shake * 7;
+      ctx.translate((Math.random() - 0.5) * k, (Math.random() - 0.5) * k);
+    }
+
     ctx.strokeStyle = 'rgba(236,233,225,0.12)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -861,7 +932,7 @@
       ctx.fillText(crate.m.toFixed(1), crate.s*scale, -BEAM_T/2*scale - ch*0.38);
     }
 
-    drawSpring();
+    drawCharge();
     if(A.on) drawWagon(A.s, params.mA, COL_A, '#F3C98A');
     if(B.on) drawWagon(B.s, params.mB, COL_B, '#A7CEDE');
 
@@ -874,6 +945,35 @@
 
     if(A.fall) drawFallen(A, COL_A);
     if(B.fall) drawFallen(B, COL_B);
+
+    drawBlast();
+    ctx.restore();
+  }
+
+  // Flash and debris live in world metres: x from the pivot, y above ground.
+  function drawBlast(){
+    if(fx.flash > 0){
+      const cx = pivotX + fx.bx * scale, cy = groundY - fx.by * scale;
+      const r = (0.3 + (1 - fx.flash) * 2.1) * scale;
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      grad.addColorStop(0, `rgba(255,244,214,${(fx.flash * 0.9).toFixed(3)})`);
+      grad.addColorStop(0.4, `rgba(232,163,61,${(fx.flash * 0.5).toFixed(3)})`);
+      grad.addColorStop(1, 'rgba(232,163,61,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    for(const p of fx.parts){
+      const a = Math.max(0, Math.min(1, p.life));
+      ctx.fillStyle = p.hot
+        ? `rgba(255,214,140,${a.toFixed(3)})`
+        : `rgba(140,144,160,${(a * 0.7).toFixed(3)})`;
+      ctx.beginPath();
+      ctx.arc(pivotX + p.x * scale, groundY - p.y * scale, 1.2 + a * 2.8, 0, Math.PI*2);
+      ctx.fill();
+    }
   }
 
   // ---- readouts ---------------------------------------------------------
@@ -959,9 +1059,10 @@
   const sliders = {
     mA: { key:'mA', fmt:v => v.toFixed(1) + ' kg' },
     mB: { key:'mB', fmt:v => v.toFixed(1) + ' kg' },
-    k:  { key:'k',  fmt:v => v.toFixed(2) + '×' },
+    k:  { key:'k',  fmt:v => (v * 18).toFixed(0) + ' J' },
     g:  { key:'g',  fmt:v => v.toFixed(2) + ' m/s²' },
-    mu: { key:'mu', fmt:v => v.toFixed(3) }
+    mu: { key:'mu', fmt:v => v.toFixed(3) },
+    slow: { key:'slow', fmt:v => v.toFixed(2) + '×' }
   };
 
   Object.entries(sliders).forEach(([name, sl]) => {
@@ -993,7 +1094,7 @@
       b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
 
     fireBtn.disabled = !coupled;
-    fireBtn.textContent = coupled ? 'Fire the spring' : 'Rolling…';
+    fireBtn.textContent = coupled ? 'FIRE' : 'Rolling…';
     canvas.classList.toggle('grabbable', coupled);
 
     document.getElementById('verdict').className =
@@ -1002,7 +1103,7 @@
     hintEl.innerHTML = coupled
       ? (mode === 'play'
           ? 'Load the wagons and drag the pair until the plank sits level'
-          : 'Drag the coupled pair along the plank &middot; then fire the spring')
+          : 'Drag the coupled pair along the plank &middot; then blow the charge')
       : 'Watch the moments &mdash; mA·dA and mB·dB stay equal';
   }
 
@@ -1022,6 +1123,23 @@
 
   fireBtn.addEventListener('click', () => {
     if(!coupled) return;
+
+    // The charge dumps its energy in one go. Splitting an impulse J equally
+    // and oppositely leaves the pair's momentum at zero — which is exactly
+    // why the plank does not care how hard this goes off.
+    //   KE = J^2/2 * (1/mA + 1/mB) = J^2 / (2 * reduced mass)
+    const reduced = (params.mA * params.mB) / (params.mA + params.mB);
+    const J = Math.sqrt(2 * params.k * 18 * reduced);
+    A.v = -J / params.mA;
+    B.v =  J / params.mB;
+
+    const mid = (A.s + B.s) / 2;
+    boom(
+      mid * Math.cos(th),
+      PIVOT_H + mid * Math.sin(th) + BEAM_T/2 + WAGON_H * 0.42
+    );
+    bang();
+
     coupled = false;
     worstTilt = Math.abs(th);
     simTime = 0;
@@ -1030,6 +1148,8 @@
 
   document.getElementById('resetBtn').addEventListener('click', () => { recouple(); refresh(); });
   document.getElementById('nextBtn').addEventListener('click', () => { newRound(); refresh(); });
+
+  document.getElementById('sound').addEventListener('change', ev => { soundOn = ev.target.checked; });
 
   document.getElementById('autoPlace').addEventListener('change', ev => {
     autoPlace = ev.target.checked;
