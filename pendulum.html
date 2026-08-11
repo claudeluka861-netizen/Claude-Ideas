@@ -190,6 +190,12 @@
     color:var(--gold);
   }
 
+  :focus-visible{
+    outline:2px solid var(--gold);
+    outline-offset:3px;
+    border-radius:2px;
+  }
+
   .ctrl{ margin-bottom:16px; }
 
   .ctrl-head{
@@ -886,6 +892,13 @@
 
   setMode('double');
   resize();
+
+  // Motion is the whole point here, so don't strip it — just hand control to
+  // anyone who has asked the system for less of it.
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    setRunning(false);
+  }
+
   requestAnimationFrame(frame);
 })();
 </script>
