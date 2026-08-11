@@ -26,6 +26,7 @@
     --gold-dim: rgba(232,163,61,0.13);
     --gold-line: rgba(232,163,61,0.35);
     --danger:#D8674F;
+    --good:#6FB58A;
   }
 
   *{ box-sizing:border-box; }
@@ -85,7 +86,7 @@
     font-size:15px;
     line-height:1.6;
     color:var(--muted);
-    max-width:52ch;
+    max-width:56ch;
     margin:0 0 32px;
   }
 
@@ -131,6 +132,9 @@
     font-weight:500;
   }
 
+  .hud .lock{ color:var(--good); }
+  .hud .fail{ color:var(--danger); }
+
   .hint{
     position:absolute;
     bottom:12px;
@@ -162,6 +166,8 @@
     margin:0 0 14px;
   }
 
+  .panel-label.spaced{ margin-top:22px; }
+
   .seg{
     display:flex;
     border:1px solid var(--line-strong);
@@ -178,7 +184,7 @@
     color:var(--muted);
     background:transparent;
     border:none;
-    padding:10px 6px;
+    padding:10px 4px;
     cursor:pointer;
     transition:background .15s ease, color .15s ease;
   }
@@ -251,6 +257,15 @@
   input[type=range]:disabled::-moz-range-thumb{ background:var(--muted-2); cursor:default; }
   .ctrl.disabled .ctrl-name,
   .ctrl.disabled .ctrl-val{ color:var(--muted-2); }
+
+  /* Rows and controls that belong to one mode only. */
+  [data-when]{ display:none; }
+  .m-single [data-when~="single"],
+  .m-double [data-when~="double"],
+  .m-follow [data-when~="follow"]{ display:block; }
+  .readout.m-single .row[data-when~="single"],
+  .readout.m-double .row[data-when~="double"],
+  .readout.m-follow .row[data-when~="follow"]{ display:flex; }
 
   .btn-row{
     display:flex;
@@ -335,12 +350,15 @@
   }
 
   .readout .row{
-    display:flex;
     justify-content:space-between;
     gap:10px;
   }
 
-  .readout .row span:last-child{ color:var(--ink); }
+  .readout .row[data-when~="all"]{ display:flex; }
+  .readout .row span:last-child{
+    color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
 
   .foot{
     font-family:'JetBrains Mono', monospace;
@@ -354,7 +372,7 @@
   @media (max-width: 860px){
     body{ padding:36px 16px 64px; }
     .layout{ grid-template-columns:1fr; }
-    canvas{ height:420px; }
+    canvas{ height:440px; }
     h1{ font-size:28px; }
   }
 </style>
@@ -364,25 +382,45 @@
 
   <p class="eyebrow">Rigid body sandbox</p>
   <h1>Pendulum</h1>
-  <p class="sub">A physically integrated pendulum — single or chaotic double. Drag a bob to reposition it, flick it to throw it, and watch how a hair's difference in the start angle rewrites the whole path.</p>
+  <p class="sub">A physically integrated pendulum. Let it swing freely and watch chaos do its work — or switch to Follow, drag the dashed ghost into the pose you want, and make the motorised arm fight gravity to match you. Aim it straight up and see whether it can hold.</p>
 
   <div class="layout">
 
     <div class="stage">
       <canvas id="c"></canvas>
       <div class="hud" id="hud"></div>
-      <div class="hint" id="hint">Drag a bob to aim &middot; Space to pause &middot; R to reset</div>
+      <div class="hint" id="hint"></div>
     </div>
 
     <div>
-      <div class="panel">
+      <div class="panel" id="panel">
         <p class="panel-label">Mode</p>
         <div class="seg" id="modeSeg">
           <button data-mode="single" aria-pressed="false">Single</button>
-          <button data-mode="double" aria-pressed="true">Double</button>
+          <button data-mode="double" aria-pressed="false">Double</button>
+          <button data-mode="follow" aria-pressed="true">Follow</button>
         </div>
 
-        <p class="panel-label">Parameters</p>
+        <div data-when="follow">
+          <p class="panel-label">Target pose</p>
+          <div class="seg" id="poseSeg">
+            <button data-pose="up">Stand up</button>
+            <button data-pose="l">Reach out</button>
+            <button data-pose="down">Hang</button>
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrl-head"><span class="ctrl-name">Motor power</span><span class="ctrl-val" id="v_power"></span></div>
+            <input type="range" id="power" min="0.2" max="4" step="0.05" value="1.7">
+          </div>
+
+          <div class="ctrl">
+            <div class="ctrl-head"><span class="ctrl-name">Reflex speed</span><span class="ctrl-val" id="v_react"></span></div>
+            <input type="range" id="react" min="1.5" max="14" step="0.1" value="7">
+          </div>
+        </div>
+
+        <p class="panel-label spaced">Parameters</p>
 
         <div class="ctrl" data-ctrl="l1">
           <div class="ctrl-head"><span class="ctrl-name">Arm 1 length</span><span class="ctrl-val" id="v_l1"></span></div>
@@ -410,7 +448,7 @@
         </div>
 
         <div class="ctrl" data-ctrl="damp">
-          <div class="ctrl-head"><span class="ctrl-name">Damping</span><span class="ctrl-val" id="v_damp"></span></div>
+          <div class="ctrl-head"><span class="ctrl-name">Joint friction</span><span class="ctrl-val" id="v_damp"></span></div>
           <input type="range" id="damp" min="0" max="0.6" step="0.005" value="0">
         </div>
 
@@ -420,7 +458,7 @@
         </div>
 
         <label class="check"><input type="checkbox" id="trailOn" checked> Motion trail</label>
-        <label class="check"><input type="checkbox" id="ghostOn"> Ghost twin (+0.001 rad)</label>
+        <label class="check" data-when="double"><input type="checkbox" id="ghostOn"> Chaos twin (+0.001 rad)</label>
 
         <div class="btn-row">
           <button class="act primary" id="playBtn">Pause</button>
@@ -430,16 +468,20 @@
 
       <div class="panel">
         <p class="panel-label">Telemetry</p>
-        <div class="readout">
-          <div class="row"><span>angle 1</span><span id="r_a1">—</span></div>
-          <div class="row"><span>angle 2</span><span id="r_a2">—</span></div>
-          <div class="row"><span>kinetic</span><span id="r_ke">—</span></div>
-          <div class="row"><span>potential</span><span id="r_pe">—</span></div>
-          <div class="row"><span>total</span><span id="r_te">—</span></div>
+        <div class="readout" id="readout">
+          <div class="row" data-when="all"><span>angle 1</span><span id="r_a1">—</span></div>
+          <div class="row" data-when="all"><span>angle 2</span><span id="r_a2">—</span></div>
+          <div class="row" data-when="single double"><span>kinetic</span><span id="r_ke">—</span></div>
+          <div class="row" data-when="single double"><span>potential</span><span id="r_pe">—</span></div>
+          <div class="row" data-when="single double"><span>total</span><span id="r_te">—</span></div>
+          <div class="row" data-when="follow"><span>miss by</span><span id="r_err">—</span></div>
+          <div class="row" data-when="follow"><span>motor 1</span><span id="r_u1">—</span></div>
+          <div class="row" data-when="follow"><span>motor 2</span><span id="r_u2">—</span></div>
+          <div class="row" data-when="follow"><span>held for</span><span id="r_hold">—</span></div>
         </div>
       </div>
 
-      <p class="foot">RK4 integration &middot; 960 Hz substeps<br>Energy drift is the integrator's, not physics'.</p>
+      <p class="foot">RK4 integration &middot; 960 Hz substeps<br>Follow mode drives both joints with torque-limited PD motors.</p>
     </div>
 
   </div>
@@ -453,26 +495,70 @@
   const ctx = canvas.getContext('2d');
 
   // ---- simulation state -------------------------------------------------
-  const params = { L1:1.2, L2:1.0, m1:1.4, m2:1.0, g:9.81, damp:0, speed:1 };
+  const params = { L1:1.2, L2:1.0, m1:1.4, m2:1.0, g:9.81, damp:0, speed:1, power:1.7, react:7 };
 
   const DEFAULT = { th1: Math.PI * 0.75, th2: Math.PI * 0.5 };
 
-  let mode = 'double';
+  let mode = 'follow';
   let running = true;
   let showTrail = true;
-  let showGhost = false;
+  let showTwin = false;
 
-  // state vector: [th1, w1, th2, w2] — angles measured from straight down.
+  // State vector [th1, w1, th2, w2]; angles measured from straight down, so
+  // 0 = hanging, ±PI = balanced overhead.
   let s = [DEFAULT.th1, 0, DEFAULT.th2, 0];
-  let ghost = null;
+  let twin = null;
+
+  // Follow mode: the pose the motors are chasing. Same pivot, same lengths.
+  let target = [Math.PI, Math.PI];
+  let lastTorque = [0, 0];
+  let holdTime = 0;
 
   let trail = [];
-  let ghostTrail = [];
+  let twinTrail = [];
   const TRAIL_MAX = 900;
 
+  const wrap = a => {
+    let x = (a + Math.PI) % (Math.PI * 2);
+    if(x < 0) x += Math.PI * 2;
+    return x - Math.PI;
+  };
+  const clamp = (v, lim) => v > lim ? lim : (v < -lim ? -lim : v);
+
+  // ---- control ----------------------------------------------------------
+  // Torque-limited PD at each joint, on top of a gravity feedforward. Gains
+  // scale with link inertia so the response feels the same after the mass and
+  // length sliders move, and the limits are quoted as multiples of the torque
+  // needed to hold that link out horizontally — so power below about 1.0
+  // genuinely cannot hold the arm up, whatever the gains say.
+  //
+  // Without the feedforward the arm droops several degrees short of any pose
+  // off the vertical: PD alone can only produce holding torque by standing at
+  // an error. Cancelling the target pose's own weight is what lets it settle
+  // exactly on the ghost.
+  function control(st){
+    if(mode !== 'follow') return [0, 0];
+
+    const { L1, L2, m1, m2, g, power, react } = params;
+    const I1 = (m1 + m2) * L1 * L1;
+    const I2 = m2 * L2 * L2;
+
+    const e1 = wrap(target[0] - st[0]);
+    const e2 = wrap(target[1] - st[2]);
+
+    // Elbow carries link 2's weight; the base carries both.
+    const ff2 = m2 * g * L2 * Math.sin(target[1]);
+    const ff1 = (m1 + m2) * g * L1 * Math.sin(target[0]) + ff2;
+
+    const u1 = clamp(ff1 + I1*react*react*e1 - 1.8*I1*react*st[1], power * (m1 + m2) * g * L1);
+    const u2 = clamp(ff2 + I2*react*react*e2 - 1.8*I2*react*st[3], power * m2 * g * L2);
+    return [u1, u2];
+  }
+
   // ---- physics ----------------------------------------------------------
-  // Returns d/dt of the state vector. Single mode locks the second arm out
-  // by leaving its derivatives at zero.
+  // Manipulator form  M(q)q'' + C(q,q') + G(q) = Q, solved directly for the
+  // accelerations. u1 is the base motor; u2 is the elbow motor, which pushes
+  // back on link 1 with an equal and opposite torque.
   function deriv(st){
     const [th1, w1, th2, w2] = st;
     const { L1, L2, m1, m2, g, damp } = params;
@@ -484,21 +570,26 @@
 
     const d = th1 - th2;
     const sd = Math.sin(d), cd = Math.cos(d);
-    const den = 2*m1 + m2 - m2 * Math.cos(2*d);
 
-    const a1 = (
-      -g * (2*m1 + m2) * Math.sin(th1)
-      - m2 * g * Math.sin(th1 - 2*th2)
-      - 2 * sd * m2 * (w2*w2*L2 + w1*w1*L1*cd)
-    ) / (L1 * den) - damp * w1;
+    const M11 = (m1 + m2) * L1 * L1;
+    const M12 = m2 * L1 * L2 * cd;
+    const M22 = m2 * L2 * L2;
 
-    const a2 = (
-      2 * sd * (
-        w1*w1*L1*(m1 + m2)
-        + g * (m1 + m2) * Math.cos(th1)
-        + w2*w2*L2*m2*cd
-      )
-    ) / (L2 * den) - damp * w2;
+    const C1 = m2 * L1 * L2 * w2 * w2 * sd;
+    const C2 = -m2 * L1 * L2 * w1 * w1 * sd;
+
+    const G1 = (m1 + m2) * g * L1 * Math.sin(th1);
+    const G2 = m2 * g * L2 * Math.sin(th2);
+
+    const [u1, u2] = control(st);
+
+    // Generalised forces: joint friction plus motor torques.
+    const Q1 = (u1 - u2) - damp * M11 * w1 - C1 - G1;
+    const Q2 = u2 - damp * M22 * (w2 - w1) - C2 - G2;
+
+    const det = M11 * M22 - M12 * M12;
+    const a1 = ( M22 * Q1 - M12 * Q2) / det;
+    const a2 = (-M12 * Q1 + M11 * Q2) / det;
 
     return [w1, a1, w2, a2];
   }
@@ -511,18 +602,20 @@
     return st.map((v,i) => v + (h/6) * (k1[i] + 2*k2[i] + 2*k3[i] + k4[i]));
   }
 
-  function bobs(st){
+  function bobs(th1, th2){
     const { L1, L2 } = params;
-    const x1 = L1 * Math.sin(st[0]);
-    const y1 = -L1 * Math.cos(st[0]);
+    const x1 = L1 * Math.sin(th1);
+    const y1 = -L1 * Math.cos(th1);
     if(mode === 'single') return { x1, y1, x2:x1, y2:y1 };
-    return { x1, y1, x2: x1 + L2*Math.sin(st[2]), y2: y1 - L2*Math.cos(st[2]) };
+    return { x1, y1, x2: x1 + L2*Math.sin(th2), y2: y1 - L2*Math.cos(th2) };
   }
+
+  const pose = st => bobs(st[0], st[2]);
 
   function energy(st){
     const { L1, L2, m1, m2, g } = params;
     const [th1, w1, th2, w2] = st;
-    const p = bobs(st);
+    const p = pose(st);
 
     if(mode === 'single'){
       const ke = 0.5 * m1 * (L1*w1) * (L1*w1);
@@ -552,8 +645,9 @@
   }
 
   function layout(){
-    // A double pendulum loops over its own pivot, so fit the whole reachable
-    // disc rather than just the space below the mount.
+    // The arm loops over its own pivot — and in Follow mode it is supposed to
+    // stand above it — so fit the whole reachable disc, not just the space
+    // below the mount.
     const reach = mode === 'single' ? params.L1 : params.L1 + params.L2;
     const pad = 26;
     scale = Math.min((H - 2*pad) / (2*reach), (W - 2*pad) / (2*reach));
@@ -580,38 +674,43 @@
     }
   }
 
-  function drawArm(st, opts){
-    const p = bobs(st);
+  function drawArm(p, o){
     const [sx1, sy1] = toScreen(p.x1, p.y1);
     const [sx2, sy2] = toScreen(p.x2, p.y2);
 
     ctx.lineCap = 'round';
-    ctx.strokeStyle = opts.rod;
-    ctx.lineWidth = opts.rodWidth;
+    ctx.setLineDash(o.dash || []);
+    ctx.strokeStyle = o.rod;
+    ctx.lineWidth = o.rodWidth;
 
     ctx.beginPath();
     ctx.moveTo(pivotX, pivotY);
     ctx.lineTo(sx1, sy1);
-    if(mode === 'double') ctx.lineTo(sx2, sy2);
+    if(mode !== 'single') ctx.lineTo(sx2, sy2);
     ctx.stroke();
+    ctx.setLineDash([]);
 
-    ctx.fillStyle = opts.bob1;
-    ctx.beginPath();
-    ctx.arc(sx1, sy1, bobRadius(params.m1), 0, Math.PI*2);
-    ctx.fill();
-
-    if(mode === 'double'){
-      ctx.fillStyle = opts.bob2;
+    const paint = (x, y, r, fill, stroke) => {
       ctx.beginPath();
-      ctx.arc(sx2, sy2, bobRadius(params.m2), 0, Math.PI*2);
+      ctx.arc(x, y, r, 0, Math.PI*2);
+      ctx.fillStyle = fill;
       ctx.fill();
-    }
+      if(stroke){
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    };
+
+    paint(sx1, sy1, bobRadius(params.m1), o.bob1, o.ring);
+    if(mode !== 'single') paint(sx2, sy2, bobRadius(params.m2), o.bob2, o.ring);
   }
 
   function render(){
     ctx.clearRect(0, 0, W, H);
 
-    // pivot mount
+    // Ceiling line, plus the floor the arm has to lift itself off in Follow.
+    ctx.setLineDash([]);
     ctx.strokeStyle = 'rgba(236,233,225,0.10)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -620,23 +719,31 @@
     ctx.stroke();
 
     if(showTrail){
-      if(showGhost && ghost) drawTrail(ghostTrail, '216,103,79', 0.5);
+      if(mode === 'double' && showTwin && twin) drawTrail(twinTrail, '216,103,79', 0.5);
       drawTrail(trail, '232,163,61', 0.72);
     }
 
-    if(showGhost && ghost){
-      drawArm(ghost, {
+    // Target ghost sits under the real arm, so overlap reads as a match.
+    if(mode === 'follow'){
+      drawArm(bobs(target[0], target[1]), {
+        rod:'rgba(236,233,225,0.22)', rodWidth:2, dash:[5,5],
+        bob1:'rgba(236,233,225,0.10)', bob2:'rgba(236,233,225,0.14)',
+        ring:'rgba(236,233,225,0.34)'
+      });
+    }
+
+    if(mode === 'double' && showTwin && twin){
+      drawArm(pose(twin), {
         rod:'rgba(216,103,79,0.35)', rodWidth:1.5,
         bob1:'rgba(216,103,79,0.45)', bob2:'rgba(216,103,79,0.6)'
       });
     }
 
-    drawArm(s, {
+    drawArm(pose(s), {
       rod:'rgba(236,233,225,0.42)', rodWidth:2,
       bob1:'#8C90A0', bob2:'#E8A33D'
     });
 
-    // pivot pin sits on top of the rods
     ctx.fillStyle = '#5D6070';
     ctx.beginPath();
     ctx.arc(pivotX, pivotY, 3.5, 0, Math.PI*2);
@@ -650,32 +757,50 @@
   let simTime = 0;
 
   function pushTrail(){
-    const p = bobs(s);
+    const p = pose(s);
     trail.push(toScreen(mode === 'single' ? p.x1 : p.x2, mode === 'single' ? p.y1 : p.y2));
     if(trail.length > TRAIL_MAX) trail.shift();
 
-    if(showGhost && ghost){
-      const q = bobs(ghost);
-      ghostTrail.push(toScreen(mode === 'single' ? q.x1 : q.x2, mode === 'single' ? q.y1 : q.y2));
-      if(ghostTrail.length > TRAIL_MAX) ghostTrail.shift();
+    if(mode === 'double' && showTwin && twin){
+      const q = pose(twin);
+      twinTrail.push(toScreen(q.x2, q.y2));
+      if(twinTrail.length > TRAIL_MAX) twinTrail.shift();
     }
+  }
+
+  function missBy(){
+    return Math.max(
+      Math.abs(wrap(target[0] - s[0])),
+      Math.abs(wrap(target[1] - s[2]))
+    ) * 180 / Math.PI;
   }
 
   function frame(now){
     const raw = (now - last) / 1000;
     last = now;
 
-    if(running && !drag){
+    // Dragging pauses a free swing, but Follow mode has to keep running so the
+    // arm chases the ghost while your finger is still down.
+    const stepping = running && (mode === 'follow' || !drag);
+
+    if(stepping){
       acc += Math.min(raw, 0.05) * params.speed;
       let steps = 0;
       while(acc >= DT && steps < 4000){
         s = rk4(s, DT);
-        if(showGhost && ghost) ghost = rk4(ghost, DT);
+        if(mode === 'double' && showTwin && twin) twin = rk4(twin, DT);
         acc -= DT;
         simTime += DT;
         steps++;
       }
       acc = Math.min(acc, DT);
+      lastTorque = control(s);
+
+      if(mode === 'follow'){
+        const held = missBy() < 6;
+        holdTime = held ? holdTime + Math.min(raw, 0.05) * params.speed : 0;
+      }
+
       pushTrail();
     }
 
@@ -686,11 +811,8 @@
 
   // ---- readouts ---------------------------------------------------------
   const hud = document.getElementById('hud');
-  const r_a1 = document.getElementById('r_a1');
-  const r_a2 = document.getElementById('r_a2');
-  const r_ke = document.getElementById('r_ke');
-  const r_pe = document.getElementById('r_pe');
-  const r_te = document.getElementById('r_te');
+  const readout = document.getElementById('readout');
+  const out = id => document.getElementById(id);
 
   const deg = th => {
     let d = th * 180 / Math.PI % 360;
@@ -703,23 +825,40 @@
   let readoutTick = 0;
   function updateReadout(){
     if(readoutTick++ % 3) return;    // ~20 Hz is plenty for text
+
+    out('r_a1').textContent = `${fmt(deg(s[0]), 1)}°`;
+    out('r_a2').textContent = mode === 'single' ? '—' : `${fmt(deg(s[2]), 1)}°`;
+
+    if(mode === 'follow'){
+      const miss = missBy();
+      const state = miss < 6 ? '<span class="lock">LOCKED</span>'
+                  : miss < 35 ? 'CHASING'
+                  : '<span class="fail">RECOVERING</span>';
+      hud.innerHTML = `<b>t</b> ${simTime.toFixed(1)}s &nbsp; ${state}<br><b>miss</b> ${miss.toFixed(1)}°`;
+      out('r_err').textContent = `${fmt(miss, 1)}°`;
+      out('r_u1').textContent = `${fmt(lastTorque[0], 1)} Nm`;
+      out('r_u2').textContent = `${fmt(lastTorque[1], 1)} Nm`;
+      out('r_hold').textContent = `${fmt(holdTime, 1)} s`;
+      return;
+    }
+
     const e = energy(s);
     hud.innerHTML = `<b>t</b> ${simTime.toFixed(1)}s &nbsp; <b>E</b> ${e.te.toFixed(2)} J`
-      + (showGhost && ghost ? `<br><b>divergence</b> ${separation().toFixed(3)} m` : '');
-    r_a1.textContent = `${fmt(deg(s[0]), 1)}°`;
-    r_a2.textContent = mode === 'single' ? '—' : `${fmt(deg(s[2]), 1)}°`;
-    r_ke.textContent = `${fmt(e.ke)} J`;
-    r_pe.textContent = `${fmt(e.pe)} J`;
-    r_te.textContent = `${fmt(e.te)} J`;
+      + (mode === 'double' && showTwin && twin ? `<br><b>divergence</b> ${separation().toFixed(3)} m` : '');
+    out('r_ke').textContent = `${fmt(e.ke)} J`;
+    out('r_pe').textContent = `${fmt(e.pe)} J`;
+    out('r_te').textContent = `${fmt(e.te)} J`;
   }
 
   function separation(){
-    const a = bobs(s), b = bobs(ghost);
+    const a = pose(s), b = pose(twin);
     return Math.hypot(a.x2 - b.x2, a.y2 - b.y2);
   }
 
   // ---- interaction ------------------------------------------------------
-  let drag = null;          // { which, lastAngle, lastTime, omega }
+  // In Follow mode every drag moves the ghost target; the real arm is the
+  // motors' business, not yours.
+  let drag = null;
 
   function pointerPos(ev){
     const rect = canvas.getBoundingClientRect();
@@ -731,66 +870,75 @@
 
   canvas.addEventListener('pointerdown', ev => {
     const [x, y] = pointerPos(ev);
-    const p = bobs(s);
-    const grabR = 28 / scale;
+    const p = mode === 'follow' ? bobs(target[0], target[1]) : pose(s);
+    const grabR = (mode === 'follow' ? 40 : 28) / scale;
 
     const d1 = Math.hypot(x - p.x1, y - p.y1);
     const d2 = Math.hypot(x - p.x2, y - p.y2);
 
     let which = null;
-    if(mode === 'double' && d2 <= d1 && d2 < grabR) which = 2;
+    if(mode !== 'single' && d2 <= d1 && d2 < grabR) which = 2;
     else if(d1 < grabR) which = 1;
-    else if(mode === 'double' && d2 < grabR) which = 2;
+    else if(mode !== 'single' && d2 < grabR) which = 2;
     if(which === null) return;
 
     canvas.setPointerCapture(ev.pointerId);
     canvas.classList.add('dragging');
-    drag = { which, lastAngle: which === 1 ? s[0] : s[2], lastTime: performance.now(), omega: 0 };
+    drag = {
+      which,
+      lastAngle: mode === 'follow' ? target[which - 1] : (which === 1 ? s[0] : s[2]),
+      lastTime: performance.now(),
+      omega: 0
+    };
     ev.preventDefault();
   });
 
   canvas.addEventListener('pointermove', ev => {
     if(!drag) return;
     const [x, y] = pointerPos(ev);
-    const p = bobs(s);
 
+    if(mode === 'follow'){
+      const p = bobs(target[0], target[1]);
+      if(drag.which === 1) target[0] = Math.atan2(x, -y);
+      else target[1] = Math.atan2(x - p.x1, -(y - p.y1));
+      return;
+    }
+
+    const p = pose(s);
     let a;
     if(drag.which === 1){
       a = Math.atan2(x, -y);
-      s[0] = a;
-      s[1] = 0;
+      s[0] = a; s[1] = 0;
     } else {
       a = Math.atan2(x - p.x1, -(y - p.y1));
-      s[2] = a;
-      s[3] = 0;
+      s[2] = a; s[3] = 0;
     }
 
     // Track angular velocity so a flick throws the bob.
     const now = performance.now();
     const dt = (now - drag.lastTime) / 1000;
     if(dt > 0.004){
-      let da = a - drag.lastAngle;
-      while(da > Math.PI) da -= Math.PI*2;
-      while(da < -Math.PI) da += Math.PI*2;
-      drag.omega = Math.max(-25, Math.min(25, da / dt));
+      drag.omega = clamp(wrap(a - drag.lastAngle) / dt, 25);
       drag.lastAngle = a;
       drag.lastTime = now;
     }
 
     trail.length = 0;
-    ghostTrail.length = 0;
-    syncGhost();
+    twinTrail.length = 0;
+    syncTwin();
   });
 
   function endDrag(ev){
     if(!drag) return;
-    if(drag.which === 1) s[1] = drag.omega; else s[3] = drag.omega;
+    if(mode !== 'follow'){
+      if(drag.which === 1) s[1] = drag.omega; else s[3] = drag.omega;
+      syncTwin();
+    }
     drag = null;
     canvas.classList.remove('dragging');
     if(canvas.hasPointerCapture && ev && canvas.hasPointerCapture(ev.pointerId)){
       canvas.releasePointerCapture(ev.pointerId);
     }
-    syncGhost();
     last = performance.now();
   }
 
@@ -799,39 +947,72 @@
 
   // ---- controls ---------------------------------------------------------
   const sliders = {
-    l1:   { key:'L1',    el:document.getElementById('l1'),    out:document.getElementById('v_l1'),    fmt:v => v.toFixed(2) + ' m' },
-    l2:   { key:'L2',    el:document.getElementById('l2'),    out:document.getElementById('v_l2'),    fmt:v => v.toFixed(2) + ' m' },
-    m1:   { key:'m1',    el:document.getElementById('m1'),    out:document.getElementById('v_m1'),    fmt:v => v.toFixed(2) + ' kg' },
-    m2:   { key:'m2',    el:document.getElementById('m2'),    out:document.getElementById('v_m2'),    fmt:v => v.toFixed(2) + ' kg' },
-    g:    { key:'g',     el:document.getElementById('g'),     out:document.getElementById('v_g'),     fmt:v => v.toFixed(2) + ' m/s²' },
-    damp: { key:'damp',  el:document.getElementById('damp'),  out:document.getElementById('v_damp'),  fmt:v => v.toFixed(3) },
-    speed:{ key:'speed', el:document.getElementById('speed'), out:document.getElementById('v_speed'), fmt:v => v.toFixed(2) + '×' }
+    l1:    { key:'L1',    fmt:v => v.toFixed(2) + ' m' },
+    l2:    { key:'L2',    fmt:v => v.toFixed(2) + ' m' },
+    m1:    { key:'m1',    fmt:v => v.toFixed(2) + ' kg' },
+    m2:    { key:'m2',    fmt:v => v.toFixed(2) + ' kg' },
+    g:     { key:'g',     fmt:v => v.toFixed(2) + ' m/s²' },
+    damp:  { key:'damp',  fmt:v => v.toFixed(3) },
+    speed: { key:'speed', fmt:v => v.toFixed(2) + '×' },
+    power: { key:'power', fmt:v => v.toFixed(2) + '×' },
+    react: { key:'react', fmt:v => v.toFixed(1) + ' rad/s' }
   };
 
   Object.entries(sliders).forEach(([name, sl]) => {
+    sl.el = document.getElementById(name);
+    sl.out = document.getElementById('v_' + name);
     const apply = () => {
       params[sl.key] = parseFloat(sl.el.value);
       sl.out.textContent = sl.fmt(params[sl.key]);
       if(name === 'l1' || name === 'l2'){
         layout();
         trail.length = 0;
-        ghostTrail.length = 0;
+        twinTrail.length = 0;
       }
     };
     sl.el.addEventListener('input', apply);
     apply();
   });
 
+  const POSES = {
+    up:   [Math.PI, Math.PI],
+    l:    [Math.PI/2, Math.PI/2],
+    down: [0, 0]
+  };
+
+  document.getElementById('poseSeg').addEventListener('click', ev => {
+    const b = ev.target.closest('button');
+    if(!b) return;
+    target = POSES[b.dataset.pose].slice();
+  });
+
+  const panel = document.getElementById('panel');
+  const hint = document.getElementById('hint');
+  const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
+  const HINTS = {
+    single: 'Drag the bob to aim',
+    double: 'Drag a bob to aim &middot; flick to throw it',
+    follow: 'Drag the dashed ghost &mdash; the gold arm has to catch up'
+  };
+
   function setMode(next){
     mode = next;
     document.querySelectorAll('#modeSeg button').forEach(b => {
       b.setAttribute('aria-pressed', String(b.dataset.mode === next));
     });
+
+    panel.className = 'panel m-' + next;
+    readout.className = 'readout m-' + next;
+
     ['l2','m2'].forEach(n => {
       const off = next === 'single';
       sliders[n].el.disabled = off;
       sliders[n].el.closest('.ctrl').classList.toggle('disabled', off);
     });
+
+    hint.innerHTML = HINTS[next] + (coarse ? '' : ' &middot; space to pause &middot; R to reset');
+
     layout();
     reset();
   }
@@ -841,20 +1022,29 @@
     if(b) setMode(b.dataset.mode);
   });
 
-  function syncGhost(){
-    if(!showGhost){ ghost = null; return; }
-    ghost = [s[0] + 0.001, s[1], s[2], s[3]];
-    ghostTrail.length = 0;
+  function syncTwin(){
+    if(mode !== 'double' || !showTwin){ twin = null; return; }
+    twin = [s[0] + 0.001, s[1], s[2], s[3]];
+    twinTrail.length = 0;
   }
 
   function reset(){
-    s = [DEFAULT.th1, 0, mode === 'single' ? DEFAULT.th1 : DEFAULT.th2, 0];
+    if(mode === 'follow'){
+      // Start hanging dead still, with the target overhead: the first thing
+      // you see is the arm hauling itself up off the bottom.
+      s = [0.0001, 0, 0.0001, 0];
+      target = POSES.up.slice();
+    } else {
+      s = [DEFAULT.th1, 0, mode === 'single' ? DEFAULT.th1 : DEFAULT.th2, 0];
+    }
     trail.length = 0;
-    ghostTrail.length = 0;
+    twinTrail.length = 0;
     simTime = 0;
+    holdTime = 0;
     acc = 0;
+    lastTorque = [0, 0];
     last = performance.now();
-    syncGhost();
+    syncTwin();
   }
 
   const playBtn = document.getElementById('playBtn');
@@ -869,12 +1059,12 @@
 
   document.getElementById('trailOn').addEventListener('change', ev => {
     showTrail = ev.target.checked;
-    if(!showTrail){ trail.length = 0; ghostTrail.length = 0; }
+    if(!showTrail){ trail.length = 0; twinTrail.length = 0; }
   });
 
   document.getElementById('ghostOn').addEventListener('change', ev => {
-    showGhost = ev.target.checked;
-    syncGhost();
+    showTwin = ev.target.checked;
+    syncTwin();
   });
 
   window.addEventListener('keydown', ev => {
@@ -883,14 +1073,10 @@
     else if(ev.key === 'r' || ev.key === 'R'){ reset(); }
   });
 
-  window.addEventListener('resize', () => { resize(); trail.length = 0; ghostTrail.length = 0; });
+  window.addEventListener('resize', () => { resize(); trail.length = 0; twinTrail.length = 0; });
 
   // ---- go ---------------------------------------------------------------
-  if(window.matchMedia && window.matchMedia('(pointer: coarse)').matches){
-    document.getElementById('hint').innerHTML = 'Drag a bob to aim &middot; flick to throw it';
-  }
-
-  setMode('double');
+  setMode('follow');
   resize();
 
   // Motion is the whole point here, so don't strip it — just hand control to
