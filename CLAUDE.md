@@ -67,7 +67,10 @@ publisher, token auto-refresh, background service, prerequisite checker.
 1. Gemini API key → `.env`, set `generate.provider: "gemini"` (2 min, free)
 2. Set `brand.handle` in `reelforge/config.yaml` — still says `@yourhandle`
 3. Instagram Professional + Facebook Page (~20 min)
-4. Meta app + `instagram_business_content_publish` approval (days — review queue)
+4. Meta app, then `python -m reelforge connect` (~15 min). **App Review is not
+   needed** — it only applies to apps serving other people's accounts. Posting to my
+   own account needs Standard Access, which is immediate. Full walkthrough in
+   `reelforge/SETUP-INSTAGRAM.md`.
 5. imgbb key → `.env` (2 min, free)
 6. `dry_run: true` test → `dry_run: false` → `service install`
 

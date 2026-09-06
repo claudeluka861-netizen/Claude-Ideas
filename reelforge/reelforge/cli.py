@@ -4,7 +4,7 @@ import sys
 import time
 from datetime import datetime
 
-from . import auth, config, doctor, generate, publish, render, server, service, store
+from . import auth, config, connect, doctor, generate, publish, render, server, service, store
 from .config import ROOT
 
 log = logging.getLogger("reelforge")
@@ -109,6 +109,10 @@ def cmd_status(cfg, args):
     print(f"\nBackground service: {detail}")
 
 
+def cmd_connect(cfg, args):
+    connect.run(cfg, short_token=args.token)
+
+
 def cmd_doctor(cfg, args):
     raise SystemExit(1 if doctor.run(cfg) else 0)
 
@@ -174,6 +178,10 @@ def main(argv=None):
 
     p = sub.add_parser("doctor", help="check everything is wired up correctly")
     p.set_defaults(func=cmd_doctor)
+
+    p = sub.add_parser("connect", help="hook up Instagram: exchanges tokens and writes .env")
+    p.add_argument("--token", help="user access token (otherwise you are prompted)")
+    p.set_defaults(func=cmd_connect)
 
     p = sub.add_parser("run", help="generate + render (+ publish if enabled)")
     p.add_argument("-n", "--count", type=int, default=1)
