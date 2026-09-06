@@ -1,0 +1,134 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family:'Space Grotesk'; src:url('fonts/space-grotesk-latin-700-normal.woff2') format('woff2'); font-weight:700; }
+  @font-face { font-family:'Space Grotesk'; src:url('fonts/space-grotesk-latin-600-normal.woff2') format('woff2'); font-weight:600; }
+  @font-face { font-family:'Inter'; src:url('fonts/inter-latin-400-normal.woff2') format('woff2'); font-weight:400; }
+  @font-face { font-family:'Inter'; src:url('fonts/inter-latin-600-normal.woff2') format('woff2'); font-weight:600; }
+  @font-face { font-family:'Inter'; src:url('fonts/inter-latin-700-normal.woff2') format('woff2'); font-weight:700; }
+
+  :root{ --bg:#11141B; --surface:#171B24; --ink:#EDEAE2; --muted:#8C90A0; --accent:#E8A33D; --line:rgba(236,233,225,.12); }
+  [data-theme="paper"]  { --bg:#F2EFE6; --surface:#E7E2D4; --ink:#15161A; --muted:#5F6067; --accent:#B4451F; --line:rgba(21,22,26,.14); }
+  [data-theme="forest"] { --bg:#0F2A1D; --surface:#163A28; --ink:#F2EDDC; --muted:#9BB0A2; --accent:#EBC96B; --line:rgba(242,237,220,.14); }
+  [data-theme="ink"]    { --bg:#0B0B0C; --surface:#151517; --ink:#FFFFFF; --muted:#8A8A90; --accent:#E5484D; --line:rgba(255,255,255,.12); }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ width:100%; height:100%; }
+  body{ background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+
+  .slide{ position:relative; width:100vw; height:100vh; display:flex; flex-direction:column;
+          padding:var(--pad); overflow:hidden; }
+  .grain{ position:absolute; inset:0; pointer-events:none; opacity:.35;
+          background:radial-gradient(120% 90% at 50% 0%, rgba(255,255,255,.06), transparent 60%); }
+
+  .top{ display:flex; justify-content:space-between; align-items:center; font-size:calc(var(--u)*.85);
+        letter-spacing:.16em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .pill{ color:var(--accent); }
+
+  .body{ flex:1; display:flex; flex-direction:column; justify-content:center; gap:calc(var(--u)*.9); }
+
+  h1{ font-family:'Space Grotesk',sans-serif; font-weight:700; line-height:1.02;
+      letter-spacing:-.02em; font-size:var(--h1); }
+  h1 em{ font-style:normal; color:var(--accent); }
+  .sub{ font-size:calc(var(--u)*1.35); color:var(--muted); font-weight:400; line-height:1.35; }
+
+  .num{ display:inline-flex; align-items:center; justify-content:center;
+        width:calc(var(--u)*2.6); height:calc(var(--u)*2.6); border-radius:50%;
+        background:var(--accent); color:var(--bg); font-family:'Space Grotesk',sans-serif;
+        font-weight:700; font-size:calc(var(--u)*1.3); margin-bottom:calc(var(--u)*.4); }
+  h2{ font-family:'Space Grotesk',sans-serif; font-weight:700; line-height:1.06;
+      letter-spacing:-.015em; font-size:var(--h2); }
+  .text{ font-size:calc(var(--u)*1.28); line-height:1.5; color:var(--ink); opacity:.86; font-weight:400; }
+
+  .rule{ height:2px; background:var(--line); width:100%; }
+
+  .bottom{ display:flex; justify-content:space-between; align-items:flex-end;
+           font-size:calc(var(--u)*.9); color:var(--muted); font-weight:600; }
+  .swipe{ display:flex; align-items:center; gap:calc(var(--u)*.5); color:var(--accent);
+          letter-spacing:.14em; text-transform:uppercase; }
+  .arrow{ font-size:calc(var(--u)*1.2); }
+
+  .cta h2{ font-size:var(--h1); }
+  .handle{ color:var(--accent); font-family:'Space Grotesk',sans-serif; font-weight:700;
+           font-size:calc(var(--u)*1.6); }
+</style>
+<body>
+<div class="slide" id="slide"><div class="grain"></div></div>
+<script>
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+// Shrink the headline until it stops overflowing its box.
+function fit(el, box, max, min){
+  let size = max;
+  el.style.fontSize = size + 'px';
+  while (size > min && (el.scrollHeight > box.clientHeight || box.scrollHeight > box.clientHeight)) {
+    size -= Math.max(2, Math.round(size * 0.04));
+    el.style.fontSize = size + 'px';
+  }
+}
+
+function renderSlide(d){
+  const root = document.documentElement;
+  root.setAttribute('data-theme', d.theme || 'midnight');
+  // One unit scales the whole layout with the canvas, so 4:5 and 9:16 both look right.
+  const u = Math.round(Math.min(window.innerWidth, window.innerHeight * 0.62) * 0.036);
+  root.style.setProperty('--u', u + 'px');
+  root.style.setProperty('--pad', Math.round(u * 2.6) + 'px');
+  root.style.setProperty('--h1', Math.round(u * 3.5) + 'px');
+  root.style.setProperty('--h2', Math.round(u * 2.3) + 'px');
+
+  const el = document.getElementById('slide');
+  const counter = d.kind === 'item' ? `${d.index} / ${d.total - 2}` : '';
+  let inner = '<div class="grain"></div>';
+
+  if (d.kind === 'hook') {
+    inner += `
+      <div class="top"><span class="pill">${esc(d.kicker || '')}</span><span></span></div>
+      <div class="body">
+        <h1 id="fitme">${esc(d.hook)}</h1>
+        ${d.subhook ? `<div class="sub">${esc(d.subhook)}</div>` : ''}
+      </div>
+      <div class="rule"></div>
+      <div class="bottom" style="margin-top:calc(var(--u)*1.1)">
+        <span>${esc(d.handle || '')}</span>
+        <span class="swipe">Swipe <span class="arrow">&#8594;</span></span>
+      </div>`;
+  } else if (d.kind === 'cta') {
+    inner += `
+      <div class="top"><span class="pill">${esc(d.kicker || '')}</span><span>${counter}</span></div>
+      <div class="body cta">
+        <h2 id="fitme">${esc(d.title)}</h2>
+        <div class="sub">${esc(d.body)}</div>
+        <div class="handle">${esc(d.handle || '')}</div>
+      </div>
+      <div class="rule"></div>
+      <div class="bottom" style="margin-top:calc(var(--u)*1.1)">
+        <span>Save this</span><span>Follow for more</span>
+      </div>`;
+  } else {
+    inner += `
+      <div class="top"><span class="pill">${esc(d.kicker || '')}</span><span>${counter}</span></div>
+      <div class="body">
+        <div class="num">${d.index}</div>
+        <h2 id="fitme">${esc(d.title)}</h2>
+        <div class="text">${esc(d.body)}</div>
+      </div>
+      <div class="rule"></div>
+      <div class="bottom" style="margin-top:calc(var(--u)*1.1)">
+        <span>${esc(d.handle || '')}</span>
+        <span class="swipe">Swipe <span class="arrow">&#8594;</span></span>
+      </div>`;
+  }
+  el.innerHTML = inner;
+
+  const target = document.getElementById('fitme');
+  const box = el.querySelector('.body');
+  if (target) {
+    const start = d.kind === 'item'
+      ? parseInt(getComputedStyle(root).getPropertyValue('--h2'))
+      : parseInt(getComputedStyle(root).getPropertyValue('--h1'));
+    fit(target, box, start, Math.round(u * 1.2));
+  }
+  return true;
+}
+</script>

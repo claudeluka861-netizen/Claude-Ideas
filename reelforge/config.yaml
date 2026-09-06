@@ -1,0 +1,46 @@
+# ReelForge — Instagram carousel factory
+# Everything here is safe to edit by hand.
+
+niche:
+  name: "Business ideas & side hustles"
+  audience: "Aspiring founders, side-hustlers and indie makers, 20-40, mostly US/UK"
+  # The voice the slides are written in.
+  voice: "Direct, concrete, no hype. Short sentences. No emoji in slide text. No fake numbers."
+  # Fed to the writer so it never invents proof.
+  guardrails:
+    - "Never invent statistics, revenue figures, or testimonials."
+    - "Never claim a specific person or company earned a specific amount."
+    - "No get-rich-quick promises. No 'passive income' claims."
+    - "Advice must be actionable by one person with under $1000."
+
+brand:
+  handle: "@yourhandle"          # shown on the CTA slide
+  cta_line: "New idea every day"
+  cta_sub: "Link in bio"
+
+output:
+  # Instagram carousel: 4:5 is the tallest allowed and takes the most feed space.
+  width: 1080
+  height: 1350
+  slides_per_post: 7             # 1 hook + 5 items + 1 CTA
+  # Also write a 9:16 copy for TikTok / Stories (uploaded by hand).
+  also_vertical: true
+
+schedule:
+  posts_per_day: 3               # start low. Raise once you see reach hold.
+  # Local times (24h) the daemon publishes at. Needs >= posts_per_day entries.
+  times: ["09:15", "13:40", "19:05"]
+
+generate:
+  provider: "offline"            # offline | gemini | anthropic | openai
+  # Start on "offline" to see it work with no key, then switch to "gemini".
+  model: "gemini-2.5-flash"
+  # Hooks from the last N posts are sent to the writer so it stops repeating itself.
+  avoid_last: 40
+
+publish:
+  enabled: false                 # flip to true once your Meta app works
+  uploader: "imgbb"              # imgbb | github | none
+  dry_run: true                  # true = do everything except the final publish call
+
+themes: ["midnight", "paper", "forest", "ink"]
