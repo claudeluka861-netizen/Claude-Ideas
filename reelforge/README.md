@@ -1,80 +1,82 @@
 # ReelForge
 
-Writes, renders and posts swipeable Instagram carousels on a schedule, from your own machine.
+Writes, renders and posts swipeable Instagram carousels on a schedule, unattended,
+from your own machine.
 
 One command makes a finished post: a hook slide, five content slides, a call-to-action
-slide, a caption and hashtags — as real PNG files, ready to publish.
+slide, a caption and hashtags — real PNG files, ready to publish. Installed as a
+background service, it keeps doing that while you sleep.
 
 **The slides are not AI-generated images.** They are HTML rendered by a headless browser
-on your machine. That part is free, offline, and instant. The only thing that needs an AI
-is the *writing*, and that runs on a free API tier.
+on your machine — free, offline, instant. The only thing that needs an AI is the
+*writing*, and that runs on a free API tier.
 
 ---
 
-## Quick start — 5 minutes, no accounts, no keys
+## 1. Five minutes, no accounts, no keys
 
 ```bash
 cd reelforge
 pip install -r requirements.txt
 python -m playwright install chromium     # one-time, ~150MB
 
-python -m reelforge run -n 3              # uses the built-in offline content bank
-python -m reelforge review                # open http://127.0.0.1:8765
+python -m reelforge run -n 3              # 3 finished carousels
+python -m reelforge review                # look at them: http://127.0.0.1:8765
 ```
 
-You now have three finished carousels in `out/`, and a local site to look through them.
-Nothing has been posted anywhere. This mode reuses a small bank of hand-written posts, so
-it repeats after three — it exists to prove the pipeline works before you wire anything up.
+Nothing was posted anywhere. This uses a built-in bank of seven hand-written carousels,
+so it repeats after seven — it exists to prove the machine works before you wire anything
+up.
+
+**`python -m reelforge doctor` is the command to remember.** It checks every prerequisite
+and tells you exactly what is missing and where to fix it. Run it whenever something
+seems wrong.
 
 ---
 
-## Step 2 — real writing, still free
+## 2. Real writing — still free
 
-Get a Gemini API key at <https://aistudio.google.com/apikey>. No credit card.
+Get a Gemini key at <https://aistudio.google.com/apikey>. No credit card.
 
 ```bash
-cp .env.example .env
-# put the key in GEMINI_API_KEY
+cp .env.example .env      # put the key in GEMINI_API_KEY
 ```
 
-Then in `config.yaml` set `generate.provider: "gemini"`.
+Then set `generate.provider: "gemini"` in `config.yaml`.
 
-The free tier allows roughly 250 requests/day on `gemini-2.5-flash` and 1,000/day on
-`gemini-2.5-flash-lite`. One carousel is one request, so ten posts a day uses ten of them.
-Google has cut these limits before without notice — check your current quota in AI Studio
-if generation starts failing.
+The free tier is roughly 250 requests/day on `gemini-2.5-flash`, 1,000/day on
+`gemini-2.5-flash-lite`. One carousel is one request, so even ten posts a day uses ten.
+Google has cut these limits before without warning — if generation starts failing, check
+your quota in AI Studio.
 
-Each request is sent the hooks from your last 40 posts with instructions not to repeat
-them, which is what stops the account turning into the same post forty times.
+Each request carries the hooks from your last 40 posts with instructions not to repeat
+them. That is what stops the account becoming the same post forty times.
 
 ---
 
-## Step 3 — automatic posting to Instagram
+## 3. Automatic posting
 
-This is the part with real setup, and none of it can be done from here — it all happens in
-your Meta account.
+This part needs setup in your Meta account, and it is the one thing that cannot be
+scripted — Meta requires a real person in a browser.
 
-**What Instagram requires**
+1. Convert your Instagram account to **Professional** (Business or Creator).
+2. Link a **Facebook Page** to it.
+3. Create an app at <https://developers.facebook.com>.
+4. Get the **`instagram_business_content_publish`** permission approved on it.
+5. Generate a long-lived access token.
 
-1. Your Instagram account converted to **Professional** (Business or Creator).
-2. A **Facebook Page** linked to it.
-3. A **Meta developer app** at <https://developers.facebook.com>.
-4. The **`instagram_business_content_publish`** permission approved on that app.
-5. A long-lived access token.
+Fill in `.env`: `IG_USER_ID`, `IG_ACCESS_TOKEN`, and — importantly — `IG_APP_ID` and
+`IG_APP_SECRET`. Those last two let the tool refresh its own token. Without them, posting
+silently stops after about 60 days when the token expires.
 
-Put the token and your numeric Instagram user id into `.env` as `IG_ACCESS_TOKEN` and
-`IG_USER_ID`.
+**Where slides live.** Instagram does not accept uploads; it fetches each slide from a
+public URL. Two hosts are built in:
 
-**Where the images live.** Instagram does not accept file uploads — it fetches each slide
-from a public URL. So slides must be hosted somewhere first. Two options are built in:
+- `imgbb` — free key at <https://api.imgbb.com/>. Easiest.
+- `github` — commits slides to a public repo, serves from `raw.githubusercontent.com`.
+  Free and permanent, but the images live in that repo's history forever.
 
-- `imgbb` — free API key from <https://api.imgbb.com/>. Easiest.
-- `github` — commits slides to a public repo and serves them from `raw.githubusercontent.com`.
-  Permanent and free, but every slide is public in that repo's history forever.
-
-Set which one in `config.yaml` under `publish.uploader`.
-
-**Turning it on.** In `config.yaml`:
+Then in `config.yaml`:
 
 ```yaml
 publish:
@@ -82,25 +84,40 @@ publish:
   dry_run: true     # leave true for the first run
 ```
 
-With `dry_run: true` the tool does everything — hosts the images, builds the carousel
-container through the API — and stops just before the publish call. When that run is clean,
-set `dry_run: false`.
+`dry_run: true` does everything — hosts the images, builds the carousel through the API —
+and stops one call short of publishing. When a run comes back clean, set it to `false`.
 
-A carousel counts as **one** post against Instagram's limit of 50–100 published posts per
-rolling 24 hours, so 5–10/day is well inside it. Check your live number any time with
-`python -m reelforge status`.
+A carousel counts as **one** post against Instagram's 50–100 per rolling 24 hours, so
+5–10/day sits well inside the limit. `python -m reelforge status` shows your live number.
 
 ---
 
-## Running it while you sleep
+## 4. Making it run while you sleep
 
 ```bash
-python -m reelforge daemon
+python -m reelforge service install
 ```
 
-Reads `schedule.times` from `config.yaml` and, at each slot, generates one carousel,
-renders it, and publishes it. Leave the terminal open. To survive reboots, wrap it in a
-`systemd` unit (Linux), a LaunchAgent (macOS), or Task Scheduler (Windows).
+Detects your OS and installs a real background service — systemd on Linux, a LaunchAgent
+on macOS, a Scheduled Task on Windows. It starts on boot, restarts if it crashes, and
+writes to `reelforge.log`.
+
+It runs `doctor` first and refuses to install while anything is broken, so you cannot
+accidentally leave a dead service running overnight.
+
+```bash
+python -m reelforge service status
+python -m reelforge service uninstall
+```
+
+The daemon is built to survive being left alone: every slot is wrapped so one failure
+cannot kill the loop, generation retries three times with backoff, the Meta token is
+refreshed automatically, and it stops early if Instagram's daily quota is used up.
+
+**Volume.** `config.yaml` ships at 3 posts/day with ten time slots already listed, so
+raising `posts_per_day` to 10 needs no other edit. Meta throttles reach on repetitive
+templated content — 3/day is a deliberate starting point, not a limit. Raise it once you
+have watched your reach hold.
 
 ---
 
@@ -108,46 +125,46 @@ renders it, and publishes it. Leave the terminal open. To survive reboots, wrap 
 
 | Command | What it does |
 |---|---|
+| `doctor` | check everything is wired up; says exactly what is missing |
 | `run -n 3` | generate + render (+ publish if enabled) |
 | `generate -n 5` | write carousels only |
 | `render` | turn drafts into PNGs |
 | `review` | local site at `127.0.0.1:8765` to approve/reject/publish |
 | `publish --id 20260906-01` | publish one post |
-| `status` | what is on disk, plus your live Instagram quota |
-| `daemon` | run on the schedule |
+| `status` | what is on disk, live Instagram quota, service state |
+| `service install\|status\|uninstall` | manage the background service |
+| `daemon` | the scheduled loop (normally run by the service) |
 
 ## Layout
 
 ```
 config.yaml     niche, brand, schedule, volume — edit this first
-.env            API keys — never commit this
+.env            API keys and tokens — never commit this
 posts/          one JSON per carousel; this is the database
 out/<id>/       01.png … 07.png (4:5) and 01_v.png … (9:16 for TikTok/Stories)
+reelforge.log   what happened while you were asleep
 ```
 
 ## Changing the look
 
 `reelforge/templates/slide.html` holds all four themes (`midnight`, `paper`, `forest`,
-`ink`) as CSS variables at the top. Change the colours there and everything re-renders.
-Fonts are bundled in `templates/fonts/`, so rendering works with no internet.
+`ink`) as CSS variables at the top. Change the colours and everything re-renders. Fonts
+are bundled in `templates/fonts/`, so rendering never needs the internet.
 
 ## TikTok
 
-Not automated, on purpose. TikTok's Content Posting API restricts unaudited apps to
-`SELF_ONLY` (private) posts, requires the account itself to be private at post time, and
-caps it at 5 users per 24h. Going public needs a full app audit with a demo video. The
-tool writes 9:16 copies of every slide to `out/<id>/*_v.png` — upload those by hand.
+Not automated, deliberately. TikTok restricts unaudited apps to `SELF_ONLY` (private)
+posts, requires the account itself to be private at post time, and caps it at 5 users per
+24h. Public posting needs a full app audit with a demo video. Every slide is also written
+as a 9:16 copy at `out/<id>/*_v.png` — upload those by hand.
 
-## Things worth knowing before you scale up
+## Worth knowing
 
-- **Volume is a real risk.** Meta throttles reach on accounts posting repetitive,
-  templated, unoriginal content. The config ships at 3/day deliberately. Raise it once you
-  have watched your reach hold for a week or two, not on day one.
-- **Never automate Instagram through an unofficial library.** Tools that log in as you and
-  click buttons violate the Terms of Service and get accounts banned. This uses the
+- **Never use an unofficial Instagram automation library.** Anything that logs in as you
+  and clicks buttons breaks the Terms of Service and gets accounts banned. This uses the
   official API only.
-- **The writer can be wrong.** It is told not to invent statistics, revenue figures or
-  testimonials, and the prompt enforces that. It is not a guarantee. Read the slides in
-  `review` before they go out — that is what the approve button is for.
-- **Followers are not customers.** A big account in a niche that does not match what you
-  sell converts badly. The niche in `config.yaml` should be the niche your product serves.
+- **The writer can be wrong.** The prompt forbids invented statistics, revenue figures and
+  testimonials. That is not a guarantee. The `review` site and its approve button exist
+  for the days you want to read before posting.
+- **Followers are not customers.** The niche in `config.yaml` should be the niche your
+  product actually serves, or the audience will not convert.

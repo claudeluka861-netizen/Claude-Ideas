@@ -27,9 +27,11 @@ output:
   also_vertical: true
 
 schedule:
-  posts_per_day: 3               # start low. Raise once you see reach hold.
-  # Local times (24h) the daemon publishes at. Needs >= posts_per_day entries.
-  times: ["09:15", "13:40", "19:05"]
+  # Raise this to 5-10 once you have watched reach hold for a week or two.
+  posts_per_day: 3
+  # Local times the daemon posts at. Needs at least posts_per_day entries;
+  # ten are listed so you can raise the number without editing anything else.
+  times: ["08:10", "10:25", "12:15", "13:40", "15:30", "17:05", "18:45", "19:50", "21:10", "22:20"]
 
 generate:
   provider: "offline"            # offline | gemini | anthropic | openai

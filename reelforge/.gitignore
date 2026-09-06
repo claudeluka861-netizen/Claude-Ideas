@@ -3,3 +3,4 @@ posts/*.json
 out/*
 __pycache__/
 *.pyc
+reelforge/reelforge.log

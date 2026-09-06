@@ -115,5 +115,161 @@
       "businessgrowth",
       "solopreneur"
     ]
+  },
+  {
+    "hook": "5 Businesses You Can Start With A Van",
+    "subhook": "No storefront. No staff.",
+    "slides": [
+      {
+        "title": "Junk removal",
+        "body": "People pay to make a problem disappear today. You need a van, a dolly, and the number of your local tip."
+      },
+      {
+        "title": "Furniture assembly",
+        "body": "Flat-pack arrives, nobody wants to build it. Flat fee per item, two hours a job, no inventory."
+      },
+      {
+        "title": "Mobile car detailing",
+        "body": "You go to the office car park and work through the row. One customer becomes eight without moving."
+      },
+      {
+        "title": "Pressure washing",
+        "body": "Driveways, patios, shopfronts. The before-and-after sells itself, which makes it the easiest thing to market."
+      },
+      {
+        "title": "Retail display swaps",
+        "body": "Brands pay someone to change the display in shops on a route. Boring, contracted, repeats monthly."
+      }
+    ],
+    "caption": "Every one of these is a van, a skill you can learn in a weekend, and the willingness to knock on doors. Which one is closest to what you already own?",
+    "hashtags": [
+      "businessideas",
+      "sidehustle",
+      "smallbusiness",
+      "entrepreneur",
+      "vanlife",
+      "servicebusiness",
+      "sidehustleideas",
+      "startup",
+      "selfemployed",
+      "bluecollar"
+    ]
+  },
+  {
+    "hook": "5 Questions To Kill A Bad Idea Fast",
+    "subhook": "Ask before you build anything.",
+    "slides": [
+      {
+        "title": "Who is bleeding right now",
+        "body": "Not who would find it nice. Who has the problem badly enough to be searching for a fix this week."
+      },
+      {
+        "title": "What do they use today",
+        "body": "If the answer is nothing, that is usually because the problem is not worth solving, not because you are first."
+      },
+      {
+        "title": "How do I reach ten of them",
+        "body": "If you cannot name a group, forum, trade body or list where they gather, marketing will cost more than you think."
+      },
+      {
+        "title": "What breaks if I charge double",
+        "body": "If demand vanishes at a real price, you have a hobby with extra steps."
+      },
+      {
+        "title": "Can I test it this week",
+        "body": "If the smallest honest test takes three months, shrink the test, not your standards."
+      }
+    ],
+    "caption": "Answer these on paper before you write a line of code. Most ideas die at question two, which is the cheapest place for them to die. Which one do you skip?",
+    "hashtags": [
+      "startupadvice",
+      "businessideas",
+      "entrepreneur",
+      "founders",
+      "validation",
+      "startup",
+      "smallbusiness",
+      "buildinpublic",
+      "indiehackers",
+      "businesstips"
+    ]
+  },
+  {
+    "hook": "5 Things To Sell That Are Not Products",
+    "subhook": "No stock, no shipping.",
+    "slides": [
+      {
+        "title": "Access",
+        "body": "A vetted group, a directory, an introduction. People pay to skip the search, not for information."
+      },
+      {
+        "title": "Done-for-you setup",
+        "body": "Software is cheap and confusing. Charge to configure the thing other people already bought."
+      },
+      {
+        "title": "A recurring audit",
+        "body": "Monthly check of something that quietly breaks: listings, backups, pricing, reviews. Low effort, high anxiety."
+      },
+      {
+        "title": "Speed",
+        "body": "Same service everyone offers, delivered in 24 hours. Urgency is a feature people will pay a premium for."
+      },
+      {
+        "title": "Accountability",
+        "body": "Not the plan, the follow-up. Coaching is mostly someone checking whether you did the thing."
+      }
+    ],
+    "caption": "None of these need inventory, a warehouse, or a supplier. They need one clear promise and someone who keeps it. Which would you buy?",
+    "hashtags": [
+      "businessideas",
+      "servicebusiness",
+      "sidehustle",
+      "entrepreneur",
+      "freelancing",
+      "solopreneur",
+      "smallbusiness",
+      "onlinebusiness",
+      "startup",
+      "makemoneyonline"
+    ]
+  },
+  {
+    "hook": "5 Cheap Ways To Test An Idea",
+    "subhook": "Before you build the thing.",
+    "slides": [
+      {
+        "title": "Sell it before it exists",
+        "body": "One page, a real price, a real checkout. If nobody clicks buy, you just saved six months."
+      },
+      {
+        "title": "Do it by hand first",
+        "body": "Deliver the service manually for five customers. You learn what to automate instead of guessing."
+      },
+      {
+        "title": "Post where they already are",
+        "body": "Describe the problem in the forum they use. If the thread goes quiet, that is your answer."
+      },
+      {
+        "title": "Ask for a deposit",
+        "body": "Interest is free. A small deposit is the cheapest honest signal you will ever get."
+      },
+      {
+        "title": "Count the competitors",
+        "body": "Zero is a warning, not an opening. A few profitable rivals means the money is real."
+      }
+    ],
+    "caption": "Every one of these costs under a hundred and takes under a week. Building first costs months and tells you less. Which would you try first?",
+    "hashtags": [
+      "startupadvice",
+      "validation",
+      "businessideas",
+      "entrepreneur",
+      "leanstartup",
+      "founders",
+      "smallbusiness",
+      "buildinpublic",
+      "startup",
+      "businesstips"
+    ]
   }
 ]
