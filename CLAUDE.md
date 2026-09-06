@@ -74,6 +74,12 @@ publisher, token auto-refresh, background service, prerequisite checker.
 5. imgbb key → `.env` (2 min, free)
 6. `dry_run: true` test → `dry_run: false` → `service install`
 
+**Facebook-free route (use this if the Meta path stalls):** Instagram's native in-app
+scheduler takes carousels, 25/day, 30 days ahead, with no Page, no developer app and no
+Professional mode (free for all public accounts since March 2026). `python -m reelforge
+run -n 30 && python -m reelforge export` packages a month of posts for the phone. Meta
+setup becomes optional, not required.
+
 **Known gap:** every CTA slide says "Link in bio" and there is nothing to link to. The
 funnel ends at a broken local HTML file. Fixing `idea-engine-3.html` — a Cloudflare Worker
 holding the API key, rate limiting, a real URL, an email capture field — is the outstanding

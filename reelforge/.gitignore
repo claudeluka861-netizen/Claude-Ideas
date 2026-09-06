@@ -4,3 +4,5 @@ out/*
 __pycache__/
 *.pyc
 reelforge/reelforge.log
+export/*
+!export/.gitkeep

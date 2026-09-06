@@ -54,7 +54,28 @@ them. That is what stops the account becoming the same post forty times.
 
 ---
 
-## 3. Automatic posting
+## 3a. Posting WITHOUT Facebook (recommended if the Meta path fails)
+
+Instagram's own in-app scheduler takes carousels, 25 a day, up to 30 days ahead — with
+no Facebook Page, no developer app, no tokens, and since March 2026 no Professional mode
+either. It is free and it is the shortest route to actually posting.
+
+```bash
+python -m reelforge run -n 30      # a month of content in one go
+python -m reelforge export         # packaged, ready for your phone
+```
+
+That writes `export/<date>/` with one folder per carousel — slides numbered in order, a
+`caption.txt` beside them, and a `READ-ME-FIRST.txt` with the scheduling steps. Copy it to
+your phone, then in Instagram: **+ → Post → select all slides in order → paste the caption
+→ Advanced settings → Schedule this post**.
+
+Roughly fifteen minutes of tapping buys you a month of posts. No Meta developer account is
+involved at any point.
+
+---
+
+## 3b. Fully automatic posting via the API
 
 This part needs setup in your Meta account, and it is the one thing that cannot be
 scripted — Meta requires a real person in a browser.
@@ -127,6 +148,7 @@ have watched your reach hold.
 |---|---|
 | `doctor` | check everything is wired up; says exactly what is missing |
 | `run -n 3` | generate + render (+ publish if enabled) |
+| `export -n 30` | package carousels for hand-scheduling — the no-Facebook route |
 | `generate -n 5` | write carousels only |
 | `render` | turn drafts into PNGs |
 | `review` | local site at `127.0.0.1:8765` to approve/reject/publish |
@@ -139,6 +161,7 @@ have watched your reach hold.
 
 ```
 config.yaml     niche, brand, schedule, volume — edit this first
+export/<date>/  batches packaged for phone scheduling
 .env            API keys and tokens — never commit this
 posts/          one JSON per carousel; this is the database
 out/<id>/       01.png … 07.png (4:5) and 01_v.png … (9:16 for TikTok/Stories)
